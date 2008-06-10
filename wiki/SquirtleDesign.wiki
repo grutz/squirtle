@@ -1,0 +1,77 @@
+#summary Design of Squirtle and its API.
+
+= Squirtle's Design =
+
+The idea behind Squirtle is to generate NTLM authorization requests at will from a client. The client is managed by a series of JSON calls back to the master controller which also receives requests from outside utilities to facilitate the passage of authorization parameters.
+
+Through the use of the SAPI (Squirtle API) any program can obtain a list of controlled workstations, request NTLM authentication with a set of parameters (passing the server's nonce) or shut clients down if necessary.
+
+= Squirtle API =
+
+All requests can be sent as GET or POST structure
+
+== Controller Functions ==
+
+=== Authentication - _Not active yet_ ===
+
+All requesters must first authenticate to the master controller and obtain a session key.
+
+|| *Request* || *URI* || http://server/controller/auth ||
+|| *Variables* ||  *USER* || username for authentication ||
+|| || *PASS* || password for authentication ||
+|| *Returns* || *SQUIRTLESESS* || cookie with authentication key ||
+
+=== List Clients ===
+
+Controller function to list clients currently connected.
+
+|| *Request* || *URI* || http://server/controller/listclients ||
+|| *Variables* || None ||
+|| *Returns* || JSON || list of clients, sorted by timestamp ||
+
+=== List Hashes ===
+
+Controller function to list all collected users and hashes with nonces.
+
+|| *Request* || *URI* || http://server/controller/listhashes ||
+|| *Variables* || None ||
+|| *Returns* || JSON || User hashes, unsorted ||
+
+== Client Functions ==
+
+=== Keepalive ===
+
+This is the basic command and control block. As a new client connects the 
+controlling html/javascript code will be delivered. After a pre-configured
+timeout value, the client will poll the master controller for commands to
+process.
+
+|| *Request* || *URI* || http://server/keepalive ||
+|| *Variables* || None ||
+|| *Returns* || JSON || 'keepalive': '5000' || check back in 5 seconds ||
+|| || || 'url': 'http://server/url' | 'nil'	|| load url if exist ||
+|| || || 'refresh': 'http://url' | 'nil' || refresh iframe ||
+
+=== Static NONCE NTLM Authorization ===
+
+Force client to authenticate to master controller with a static nonce to
+collect hash. This only supports LMv1/NTLMv1 as a client-side nonce adds
+to the complexity of the hashes for cracking. If the client does not 
+support NTLMv1 negotiation then we're outta luck for this version.
+
+|| *Request* || *URI* || http://server/client/auth ||
+|| *Variables* || None ||
+|| *Returns* || JSON || {'return':'true'} ||
+
+=== Server NONCE NTLM Authorization ===
+
+Force client to authenticate to master controller with a server-defined
+nonce and return the result to the requester. Support for NTLMv2 included
+as we're just passing the authorization request and have no need to store
+for cracking.
+
+|| *Request* || *URI* || http://server/client/nonce ||
+|| *Variables* || *Message* || Base64 of Type 2 message request ||
+|| || *UserID* || UserID of client to request ||
+|| *Returns* || JSON ||  'type3': 'base64 of type3 message' ||
+|| || || 'valid': 'true' or 'false' || if UserID is valid/responsive ||
