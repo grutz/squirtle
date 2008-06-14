@@ -10,6 +10,8 @@ Through the use of the SAPI (Squirtle API) any program can obtain a list of cont
 
 All requests can be sent as GET or POST structure
 
+----
+
 == Attacker Functions ==
 
 === Authentication - _Not active yet_ ===
@@ -69,6 +71,8 @@ dead. Any requests will return 'invalid user'.
 ||           ||      || 'status':'no response'  || no response from client ||
 ||           ||      || 'type3':base64_type3    || Type 3 message base64 encoded ||
 
+----
+
 == Client Functions ==
 
 Clients are first captured by connecting to the server root (http://server/).
@@ -107,4 +111,3 @@ for cracking.
 || *Request* || *URI* || http://server/client/nonce ||
 || *Variables* || None ||
 || *Returns* || *JSON* || 'return':'true' ||
-
