@@ -1,0 +1,35 @@
+#summary Squirtle's Database Structure
+
+= Squirtle Database Structure =
+
+== Clients ==
+
+Any client that connects to Squirtle will be stored here.
+
+{{{
+	CREATE TABLE clients (
+		id integer primary key,
+		timestamp varchar(30),
+		ip varchar(16),
+		browser varchar(255)
+	)
+}}}
+
+== Users ==
+
+All hashes received are stored here.
+
+{{{
+	CREATE TABLE users (
+		id integer primary key,
+		timestamp varchar(30),
+		ip varchar(16),
+		browser varchar(255),
+		user varchar(255),
+		workstation varchar(255),
+		domain varchar(255),
+		nonce varchar(16),
+		lm varchar(48),
+		nt varchar(48)
+	)
+}}}
