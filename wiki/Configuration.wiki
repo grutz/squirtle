@@ -18,4 +18,6 @@ Squirtle is configured through a YAML-structured configuration file. Defaults ar
 || output-file || ntlmhashes.txt || File to write NT/LM hashes to for cracking ||
 || dbfile || squirtle.db || SQLite database file to use ||
 || authenticate || password || Authentication password (not implemented yet) ||
-|| client_timeout || 5000 || Drop clients who haven't talked to us in 5 seconds ||
+|| timeout || 5000 || How many milliseconds between keepalive messages. Clients who do not respond after missing 5 keepalives will be purged ||
+|| indexfile || squirtle.html || HTML file to load as the default index page ||
+|| jsfile || squirtle.js || Javascript file to load into the default index page ||
