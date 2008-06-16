@@ -75,20 +75,21 @@ dead. Any requests will return 'invalid user'.
 
 == Client Functions ==
 
-Clients are first captured by connecting to the server root (http://server/).
+Clients are first captured by connecting to the server controller (http://server/). They provide the actionable functions such as requesting authentication with static nonces, auth with server-provided nonce, change of the refresh timer, refresh the current page, etc.
 
 === Keepalive ===
 
 This is the basic command and control block. As a new client connects the 
-controlling html/javascript code will be delivered. After a pre-configured
-timeout value, the client will poll the master controller for commands to
-process.
+controller a bit of html/javascript code will be delivered that will phone home
+after a pre-configured timeout value has been reached. The purpose of this
+communication is to see if the controller has any activity for the client to
+perform.
 
 || *Request* || *URI* || http://server/keepalive ||
 || *Variables* || None ||
 || *Returns* || JSON || 'keepalive': '5000' || check back in 5 seconds ||
 || || || 'url': 'http://server/url' | 'nil'	|| load url if exist ||
-|| || || 'refresh': 'http://url' | 'nil' || refresh iframe ||
+|| || || 'refresh': 'http://url' | 'nil' || Page to refresh to - Use to direct the client to a page of your choosing. They may no longer be part of Squirtle if you direct them away! ||
 
 === Static NONCE NTLM Authorization ===
 
