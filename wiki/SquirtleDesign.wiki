@@ -93,14 +93,15 @@ perform.
 
 === Static NONCE NTLM Authorization ===
 
-Force client to authenticate to master controller with a static nonce to
-collect hash. This only supports LMv1/NTLMv1 as a client-side nonce adds
-to the complexity of the hashes for cracking. If the client does not 
+Force client to authenticate to master controller with a static nonce. 
+This only supports LMv1/NTLMv1. If the client does not 
 support NTLMv1 negotiation then we're outta luck for this version.
+
+A small window is opened for authentication and closed automatically by JavaScript.
 
 || *Request* || *URI* || http://server/client/auth ||
 || *Variables* || None ||
-|| *Returns* || JSON || 'return':'true' ||
+|| *Returns* || None || ||
 
 === Server NONCE NTLM Authorization ===
 
@@ -108,6 +109,8 @@ Force client to authenticate to master controller with a server-defined
 nonce and return the result to the requester. Support for NTLMv2 included
 as we're just passing the authorization request and have no need to store
 for cracking.
+
+A small window is opened for authentication and closed automatically by JavaScript.
 
 || *Request* || *URI* || http://server/client/nonce ||
 || *Variables* || None ||
