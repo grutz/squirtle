@@ -2,6 +2,8 @@
 
 = Squirtle Database Structure =
 
+All unique clients who have submitted a username during authentication (in other words they have passed auth) will be given a "user key" which is MD5(ip + " " + username). This key should be unique!
+
 == User Database ==
 
 Stored as a SQLite database file, this contains the clients who have connected and the user hashes that have been received.
@@ -13,6 +15,7 @@ Any client that connects to Squirtle will be stored here.
 {{{
 	CREATE TABLE clients (
 		id integer primary key,
+		key varchar(32),
 		timestamp varchar(30),
 		ip varchar(16),
 		browser varchar(255)
@@ -26,6 +29,7 @@ All hashes received are stored here.
 {{{
 	CREATE TABLE users (
 		id integer primary key,
+		key varchar(32),
 		timestamp varchar(30),
 		ip varchar(16),
 		browser varchar(255),
@@ -45,12 +49,12 @@ An in-memory SQLite database used by agents to request authentication from clien
 === Agentrequests ===
 
 {{{
-		CREATE TABLE agentrequests (
-			id integer primary key,
-			key varchar(32),
-			timestamp varchar(30),
-			reqtype varchar(10),
-			nonce varchar(255),
-			type2 varchar(255),
-		)
+	CREATE TABLE agentrequests (
+		id integer primary key,
+		key varchar(32),
+		timestamp varchar(30),
+		reqtype varchar(10),
+		nonce varchar(255),
+		type2 varchar(255),
+	)
 }}}
