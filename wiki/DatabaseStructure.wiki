@@ -2,7 +2,11 @@
 
 = Squirtle Database Structure =
 
-== Clients ==
+== User Database ==
+
+Stored as a SQLite database file, this contains the clients who have connected and the user hashes that have been received.
+
+=== Clients ==
 
 Any client that connects to Squirtle will be stored here.
 
@@ -15,7 +19,7 @@ Any client that connects to Squirtle will be stored here.
 	)
 }}}
 
-== Users ==
+=== Users ===
 
 All hashes received are stored here.
 
@@ -32,4 +36,21 @@ All hashes received are stored here.
 		lm varchar(48),
 		nt varchar(48)
 	)
+}}}
+
+== Session Database ==
+
+An in-memory SQLite database used by agents to request authentication from clients.
+
+=== Agentrequests ===
+
+{{{
+		CREATE TABLE agentrequests (
+			id integer primary key,
+			key varchar(32),
+			timestamp varchar(30),
+			reqtype varchar(10),
+			nonce varchar(255),
+			type2 varchar(255),
+		)
 }}}
