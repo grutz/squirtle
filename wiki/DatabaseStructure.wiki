@@ -41,20 +41,3 @@ All hashes received are stored here.
 		nt varchar(48)
 	)
 }}}
-
-== Session Database ==
-
-An in-memory SQLite database used by agents to request authentication from clients.
-
-=== Agentrequests ===
-
-{{{
-	CREATE TABLE agentrequests (
-		id integer primary key,
-		key varchar(32),
-		timestamp varchar(30),
-		reqtype varchar(10),
-		nonce varchar(255),
-		type2 varchar(255),
-	)
-}}}
