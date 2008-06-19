@@ -19,7 +19,7 @@ All requests can be sent as GET or POST structure
 All requesters must first authenticate to the master controller and obtain a session key.
 
 || *Request* || *URI* || http://server/controller/auth ||
-|| *Variables* ||*PASS* || password for authentication ||
+|| *Variables* ||*pass* || password for authentication ||
 || *Returns* || *SQUIRTLESESS* || cookie with authentication key ||
 
 === List Clients ===
@@ -44,8 +44,8 @@ Request that a user authenticate with a static NONCE. Results are stored in the
 hashes database.
 
 || *Request* || *URI* || http://server/controller/static ||
-|| *Variables* || Key || Client Key (md5 string) ||
-||             || Nonce || Nonce to use (as hex string) -- will use default if not listed ||
+|| *Variables* || key || Client Key (md5 string) ||
+||             || nonce || Nonce to use (as hex string) -- will use default if not listed ||
 || *Returns* || JSON || 'status':'ok' || request processing, valid user ||
 ||           ||      || 'status':'invalid user' || invalid user ||
 
@@ -57,7 +57,7 @@ not talked to the controller in 5 minutes (configurable) will be considered
 dead. Any requests will return 'invalid user'.
 
 || *Request* || *URI* || http://server/controller/type3 ||
-|| *Variables* || Key || Client key (md5 string) ||
+|| *Variables* || key || Client key (md5 string) ||
 ||  _USE_      || || ||
 ||             || base64 || Base64 of a Type 2 message ||
 ||  _OR_       || || ||
