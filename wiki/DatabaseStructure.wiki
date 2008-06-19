@@ -17,7 +17,10 @@ Any client that connects to Squirtle will be stored here.
 		id integer primary key,
 		key varchar(32),
 		timestamp varchar(30),
+		user varchar(255),
 		ip varchar(16),
+		workstation varchar(255),
+		domain varchar(255),
 		browser varchar(255)
 	)
 }}}
