@@ -12,15 +12,7 @@ All requests can be sent as GET or POST structure
 
 ----
 
-== Attacker Functions ==
-
-=== Authentication - _Not active yet_ ===
-
-All requesters must first authenticate to the master controller and obtain a session key.
-
-|| *Request* || *URI* || http://server/controller/auth ||
-|| *Variables* ||*pass* || password for authentication ||
-|| *Returns* || *SQUIRTLESESS* || cookie with authentication key ||
+== Agent / Controller Functions ==
 
 === List Clients ===
 
