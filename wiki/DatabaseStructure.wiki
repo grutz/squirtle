@@ -2,27 +2,27 @@
 
 = Squirtle Database Structure =
 
-All unique clients who have submitted a username during authentication (in other words they have passed auth) will be given a "user key" which is MD5(ip + " " + username). This key should be unique!
+Using ActiveRecord Squirtle's main database contains the session information for clients who have connected and all user hashes that have been received.
 
-== User Database ==
+=== Sessions ==
 
-Stored as a SQLite database file, this contains the clients who have connected and the user hashes that have been received.
-
-=== Clients ==
-
-Any client that connects to Squirtle will be stored here.
+Any client that connects to Squirtle will have a session stored in here.
 
 {{{
-	CREATE TABLE clients (
-		id integer primary key,
-		key varchar(32),
-		timestamp varchar(30),
-		user varchar(255),
-		ip varchar(16),
-		workstation varchar(255),
-		domain varchar(255),
-		browser varchar(255)
-	)
+       CREATE TABLE sessions (
+               id integer primary key,
+               key_id varchar(32),
+               timestamp varchar(30),
+               function varchar(6),
+               url varchar(255),
+               nonce varchar(255),
+               type2_base64 varchar(255),
+               domain varchar(255),
+               server varchar(255),
+               dns_name varchar(255),
+               dns_domain varchar(255),
+               result varchar(255)
+        )
 }}}
 
 === Users ===
