@@ -14,11 +14,11 @@ All requests can be sent as GET or POST structure
 
 == Agent / Controller Functions ==
 
-=== List Clients ===
+=== List Sessions ===
 
-Controller function to list clients currently connected.
+Controller function to list currently connected sessions
 
-|| *Request* || *URI* || http://server/controller/listclients ||
+|| *Request* || *URI* || http://server/controller/listsessions ||
 || *Variables* || None ||
 || *Returns* || JSON || list of clients, sorted by timestamp ||
 
@@ -26,7 +26,8 @@ Controller function to list clients currently connected.
 
 Controller function to list all collected users and hashes with nonces.
 
-|| *Request* || *URI* || http://server/controller/listhashes ||
+|| *Request* || *URI* || http://server/controller/allhashes ||
+||   ||  || http://server/controller/allusers ||
 || *Variables* || None ||
 || *Returns* || JSON || User hashes, unsorted ||
 
@@ -36,7 +37,7 @@ Request that a user authenticate with a static NONCE. Results are stored in the
 hashes database.
 
 || *Request* || *URI* || http://server/controller/static ||
-|| *Variables* || key || Client Key (md5 string) ||
+|| *Variables* || key || Client Key ||
 ||             || nonce || Nonce to use (as hex string) -- will use default if not listed ||
 || *Returns* || JSON || 'status':'ok' || request processing, valid user ||
 ||           ||      || 'status':'invalid user' || invalid user ||
@@ -48,19 +49,47 @@ base64 Type 2 request or the specific variables to use. Any client that has
 not talked to the controller in 5 minutes (configurable) will be considered
 dead. Any requests will return 'invalid user'.
 
-|| *Request* || *URI* || http://server/controller/type3 ||
+|| *Request* || *URI* || http://server/controller/type2 ||
 || *Variables* || key || Client key (md5 string) ||
 ||  _USE_      || || ||
 ||             || base64 || Base64 of a Type 2 message ||
 ||  _OR_       || || ||
 ||             || domain || Domain name ||
 ||             || server || Server name ||
-||             || dns_domain || DNS suffix ||
+||             || domain || DNS domain suffix ||
 ||             || nonce || Nonce (as hex string) ||
+||             || flags || Flags (as hex string) ||
 || *Returns* || JSON || 'status':'ok' || request processed ||
 ||           ||      || 'status':'invalid user' || invalid user! ||
 ||           ||      || 'status':'no response'  || no response from client ||
 ||           ||      || 'type3':base64_type3    || Type 3 message base64 encoded ||
+
+=== List hashes of a specific user ===
+
+|| *Request* || *URI* || http://server/controller/listuser ||
+|| *Variables* || user || Username ||
+|| *Returns* || JSON || 'status':'no user specified' || No user specified ||
+||                   ||           || 'status':'user not found' || User not found ||
+||                   ||           || 'status':'ok', 'hashes':{'key':'key', || 
+||                   ||           ||     'user':'user' ||
+||                   ||           ||     'workstation':'workstation' ||
+||                   ||           ||     'domain':'domain' ||
+||                   ||           ||     'nonce':'nonce' ||
+||                   ||           ||     'lm':'lm' ||
+||                   ||           ||     'nt':'nt' ||
+
+=== Redirect user to a specific URL ===
+
+|| *Request* || *URI* || http://server/controller/redirect ||
+|| *Variables* || key || Client key ||
+||                    || url || URL to redirect to ||
+|| *Returns* || JSON || 'status':'ok' ||
+
+=== Clear session data ===
+
+|| *Request* || *URI* || http://server/controller/clearsession ||
+|| *Variables* || key || Client key ||
+|| *Returns* || JSON || 'status':'ok' ||
 
 ----
 
