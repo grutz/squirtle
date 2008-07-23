@@ -1,0 +1,69 @@
+   +--------------------------------------------------+
+   | SQUIRTLE - The Browser-based NTLM Attack Toolkit |
+   |   version 1.0 - DefCon release (August, 2008)    |
+   +--------------------------------------------------+
+
+The purpose of this little doodad is to help you prove to your employer, your
+client, your best friend, your dog, or God that NTLM is truly dead. It does
+this by taking control of any browser that comes into contact with it and
+making it perform NTLM authentication at will. By using a set of API calls
+you can imbed Squirtle into existing penetration toolkits, proxies or other
+fun tools at your disposal.
+
+Requirements
+------------
+
+  o  Metasploit 3 Framework
+  o  Ruby language interpreter (1.8.6 tested)
+  o  Rubygems:
+     o  SQLite3
+     o  ActiveRecord
+  o  Be INSIDE a corporate network
+
+Why Inside?
+-----------
+
+NTLM Authentication from web browsers occurs when a user connects to a
+URL that the browser believes is within a trusted internet zone (for
+Internet Explorer). Mozilla FireFox can be configured to deliver NTLM
+authentication based upon hostnames or masks.
+
+While there have been methods of forcing the browser to believe it's
+connected to a lower-security zone using Flash objects or Java applets
+they typically revolve around deficiencies within the languages and are
+eventually patched.
+
+Using Squirtle
+--------------
+
+Running Squirtle is easy:
+
+ Step 1: Modify squirtle.yaml to suit your configuration
+ Step 2: "ruby squirtle.rb"
+ Step 3: Point browsers towards http://yourserver:8080/
+
+What to do after that depends upon you.
+
+ Option 1: Crack the LM or NTLM hashes with static nonce
+ Option 2: Use Rainbowtables on the LM hashes with static nonce
+ Option 3: Combine Squirtle with your own proxy code using the Squirtle API
+ Option 4: Make cookies!
+
+
+WARNING! ACHTUNG!
+-----------------
+
+Like most security tools, it can be used for good or evil. If you try to use
+it within your enterprise without approval from your management, you may have
+created a "resume generating" event for yourself. Get the approval you need
+before treading further.
+
+Support and Enhancements
+------------------------
+
+This is free software and will be supported and enhanced as I have time. Any
+patches submitted will be graciously reviewed and applied if applicable.
+
+
+Kurt Grutzmacher
+grutz [at] jingojango dot net
