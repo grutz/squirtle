@@ -1,0 +1,13 @@
+The files in this directory are included for the convenience of all packagers
+of ntlmaps on any platform.  Please feel free to contribute if you can see
+enhancements or improvements to be made.  Directory contents so far:
+ntlmaps.spec -- Distribution-neutral RPM .spec file.  Currently only
+                vaguely FHS compliant.
+compile.py   -- Basic wrapper of compileall.compile_dir() for convenience
+                of RPM builders.
+setup.py     -- Script for building standalone ntlmaps distributables with
+                py2exe on Windows (execute out of base directory as:
+                python packaging\setup.py).
+ntlmaps.nsi  -- NSIS (Nullsoft Scriptable Installer) configuration for
+                turning py2exe'ed ntlmaps into a pretty installer for
+                Windows.

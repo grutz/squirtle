@@ -1,0 +1,50 @@
+Modifications to NTLMAPS
+------------------------
+Additions (c) 2008 by Kurt Grutzmacher, no license changes.
+
+A few changes and additions were made to enhance NTLMAPS to support using the
+Squirtle API and pass the hash:
+
+ o SimpleJSON parser added, you'll need to download/install this
+    --> http://pypi.python.org/pypi/simplejson
+ o Command line options to configure Session Key to use for authorization
+
+Pass The Hash
+-------------
+Step 1: Comment out PASSWORD: and USER: entries in the server.cfg
+Step 2a: Use the command-line option "-l" to configure the hashes
+Step 2b: Use the command-line option "-u" to configure the username
+Step 3: Configure browser to use NTLMAPS
+Step 4: ...
+Step 5: Profit!
+
+Using Squirtle
+--------------
+Info about Squirtle and "Pass The Dutchie" attacks can be found here:
+
+http://grutztopia.jingojango.net/exploits/squirtle/
+
+These modifications allow NTLMAPS to use a controlled workstation's
+authentication routines instead of username/password.
+
+Step 1: Enable and configure SQUIRTLE options in the server.cfg
+Step 2: Use the command-line option "-k" to define a Session hash to use
+Step 3: Configure browser to use NTLMAPS
+Step 4: ...
+Step 5: Profit!
+
+Since clients communicate to the controller with a timeout authentication
+requests can take 10-20 seconds to process, delaying access. Be patient.
+
+Limitations
+-----------
+ o NTLMv2 is not supported for Pass The Hash.
+ o "Negotiate" protocol not supported by NTLMAPS
+
+Support and Bugs
+----------------
+Bound to be a few so send any questions, bugfixes and whatnot to me.
+
+Kurt Grutzmacher
+grutz@jingojango.net
+July 29, 2008
