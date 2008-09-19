@@ -1,0 +1,53 @@
+# Squirtle's Configuration File
+
+# Windows domain to use
+domain: DOMAIN
+
+# Server name
+server: testserver
+
+# DNS domain
+dns_domain: domain.com
+
+# Web server string
+serverstring: Microsoft-IIS/6.0
+
+# Metasploit lib directory
+msflib: ../metasploit/trunk/lib/
+
+# Port to listen on
+port: 8080
+
+# Address to listen on
+address: 0.0.0.0
+
+# access log filename
+accesslog: squirtle_access.log
+
+# Nonce to use
+nonce: 1122334455667788
+
+# File to write NT/LM hashes to
+output-file: ntlmhashes.txt
+
+# Sqlite database filename
+dbfile: squirtle.db
+
+# Controller authentication -- change this if you feel like it.
+user: squirtle
+pass: eltriuqs
+  
+# How many milliseconds for keepalives to timeout
+# Clients will be purged after missing 5 keepalives
+timeout: 10000
+
+# HTML index file template
+indexfile: squirtle.html
+
+# Javascript file to load into the HTML index
+jsfile: squirtle.js
+
+# Obfuscate the Javascript (not active yet)
+# obfuscatejs: false
+
+
