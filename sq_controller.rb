@@ -25,7 +25,7 @@ class ControllerServlet < HTTPServlet::AbstractServlet
     }
 
 		path = req.unparsed_uri
-		resp.body = '{ "status": "invalid command" }'
+		resp.body = '{ "status": "ok" }'
 
 		# create a response body based upon the URI path
 		resp.body = listsessions if /^\/controller\/listsessions/io =~ path
@@ -92,7 +92,7 @@ class ControllerServlet < HTTPServlet::AbstractServlet
 				# attacker supplied data vs. base64 type2 message
 				domain = req.query['domain'] or $config['domain']
 				server = req.query['server'] or $config['server']
-				dns_domain = req.query['dns_domain'] or $config['dns_domain']
+				dns_domain = req.query['domain'] or $config['domain']
 				dns_name = "#{server.downcase}.#{dns_domain}"
 				begin
 					nonce = req.query['nonce'].to_a.pack('h*')
@@ -125,8 +125,7 @@ class ControllerServlet < HTTPServlet::AbstractServlet
 					session = Session.find(:first, :conditions => [ "key_id = ?", key ])
 					if session != nil then
 						if session.result != nil
-							response = {"status" => "ok", "timestamp" => session.timestamp, "result" => session.result }.to_json
-							#response = '{ "status": "ok", "timestamp": "' + session.timestamp + '", "result": "' + session.result + '" }'
+							response = '{ "status": "ok", "timestamp": "' + session.timestamp + '", "result": "' + session.result + '" }'
 							break
 						end
 					else
@@ -144,98 +143,91 @@ class ControllerServlet < HTTPServlet::AbstractServlet
 		
 	# list all sessions, latest first.
 	def listsessions
-		response = Hash.new
-		response['status'] = "ok"
-		response['sessions'] = {}
+		response = '{ "status": "ok", "sessions": '
 		sessions = Session.find(:all, :order => "timestamp DESC")
 		sessions.each { |s|
-			response['sessions'][s.key_id] = {}
-			response['sessions'][s.key_id]['timestamp'] = s.timestamp
-			response['sessions'][s.key_id]['function'] = s.function
-			response['sessions'][s.key_id]['url'] = s.url
-			response['sessions'][s.key_id]['nonce'] = s.nonce
-			response['sessions'][s.key_id]['type2'] = s.type2_base64
-			response['sessions'][s.key_id]['domain'] = s.domain
-			response['sessions'][s.key_id]['server'] = s.server
-			response['sessions'][s.key_id]['dns_name'] = s.dns_name
-			response['sessions'][s.key_id]['dns_domain'] = s.dns_domain
-			response['sessions'][s.key_id]['result'] = s.result
+			response = response + '{ "key": "' + s.key_id + '", ' +
+			  '"timestamp": "' + s.timestamp + '", ' +
+			  '"function": "' + s.function + '", ' +
+				'"url": "' + s.url + '", ' +
+				'"nonce": "' + s.nonce + '", ' +
+				'"type2": "' + s.type2_base64 + '", ' +
+				'"domain": "' + s.domain + '", ' +
+				'"server": "' + s.server + '", ' +
+				'"dns_name": "' + s.dns_name + '", ' +
+				'"dns_domain": "' + s.dns_domain + '", ' +
+				'"result": "' + s.result + '" }' + "\n"
 		}
+		response = response + " }"
 		#print "response: #{response}"
 		
-		return response.to_json
+		return response
 	end
 
 	# list all users and their hashes
 	def listhashes
-		response = Hash.new
-		response['status'] = "ok"
-		response['hashes'] = {}
+		response = '{ "status": "ok", "hashes": '
 		users = User.find(:all, :order => "timestamp DESC")
 		users.each { |u|
-			response['hashes'][u.key] = {}
-			response['hashes'][u.key]['timestamp'] = u.timestamp
-			response['hashes'][u.key]['user'] = u.user
-			response['hashes'][u.key]['workstation'] = u.workstation
-			response['hashes'][u.key]['domain'] = u.domain
-			response['hashes'][u.key]['nonce'] = u.nonce
-			response['hashes'][u.key]['lm'] = u.lm
-			response['hashes'][u.key]['nt'] = u.nt
-		}
+			response = response + '{ "key": "' + u.key + '", ' +
+			  '"timestamp": "' + u.timestamp + '", ' +
+				'"user": "' + u.user + '", ' +
+				'"workstation": "' + u.workstation + '", ' +
+				'"domain": "' + u.domain + '", ' +
+				'"nonce": "' + u.nonce + '", ' +
+				'"lm": "' + u.lm + '", ' +
+				'"nt": "' + u.nt + '" }' + "\n"
+			}
+		response = response + " }\n"
 		#print "response: #{response}"
 		
-		return response.to_json
+		return response
 	end
 
 	# list a specific username's hashes
 	def listuser(req)
 		user = req.query['user'] or return '{ "status": "no user specified" }'
-		response = Hash.new
-		response['status'] = "ok"
-		response['hashes'] = {}
+		response = '{ "status": "ok", "hashes": '
 		users = User.find(:all, :order => "timestamp DESC", :conditions => ["upper(user) = ?", user.upcase ] )
 		if users == nil then
-			response['status'] = "user not found"
+			response = '{ "status": "user not found" }'
 		else
 			users.each { |u|
-					response['hashes'][u.key] = {}
-					response['hashes'][u.key]['timestamp'] = u.timestamp
-					response['hashes'][u.key]['user'] = u.user
-					response['hashes'][u.key]['workstation'] = u.workstation
-					response['hashes'][u.key]['domain'] = u.domain
-					response['hashes'][u.key]['nonce'] = u.nonce
-					response['hashes'][u.key]['lm'] = u.lm
-					response['hashes'][u.key]['nt'] = u.nt
-				}
-			end
-
-			return response.to_json
+				response = response + '{ "key": "' + u.key + '", ' +
+				  '"timestamp": "' + u.timestamp + '", ' +
+					'"user": "' + u.user + '", ' +
+					'"workstation": "' + u.workstation + '", ' +
+					'"domain": "' + u.domain + '", ' +
+					'"nonce": "' + u.nonce + '", ' +
+					'"lm": "' + u.lm + '", ' +
+					'"nt": "' + u.nt + '" }' + "\n"
+			}
+			response = response + " }\n"
+		end
+		#print "response: #{response}"
+		
+		return response
 	end
 	
 	# list a specific session key
 	def listsession(req)
 		key = req.query['key'] or return '{ "status": "no key specified" }'
-		response = Hash.new
-		response['status'] = "ok"
-		response['sessions'] = {}
+		response = '{ "status": "ok", "hashes": '
 		s = Session.find(:first, :conditions => [ "key_id = ?", key])
 		if s != nil then
-			response['sessions'][s.key_id] = {}
-			response['sessions'][s.key_id]['timestamp'] = s.timestamp
-			response['sessions'][s.key_id]['function'] = s.function
-			response['sessions'][s.key_id]['url'] = s.url
-			response['sessions'][s.key_id]['nonce'] = s.nonce
-			response['sessions'][s.key_id]['type2'] = s.type2_base64
-			response['sessions'][s.key_id]['domain'] = s.domain
-			response['sessions'][s.key_id]['server'] = s.server
-			response['sessions'][s.key_id]['dns_name'] = s.dns_name
-			response['sessions'][s.key_id]['dns_domain'] = s.dns_domain
-			response['sessions'][s.key_id]['result'] = s.result
-		else
-			response['status'] = "session key not found"
+			response = response + '{ "key": "' + s.key_id + '", ' +
+			  '"function": "' + s.function + '", ' +
+			  '"url": "' + s.url + '", ' +
+			  '"nonce": "' + s.nonce + '", ' +
+			  '"type2": "' + s.type2_base64 + '", ' +
+			  '"domain": "' + s.domain + '", ' +
+			  '"server": "' + s.server + '", ' +
+			  '"dns_name": "' + s.dns_name + '", ' +
+			  '"dns_domain": "' + s.dns_domain + '", ' +
+			  '"result": "' + s.result + '" } }' + "\n"
 		end
 		
-		return response.to_json
+		return response
 	end
 
 	# clear a session
