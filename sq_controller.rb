@@ -127,6 +127,7 @@ class ControllerServlet < HTTPServlet::AbstractServlet
 						if session.result != nil
 							response = {"status" => "ok", "timestamp" => session.timestamp, "result" => session.result }.to_json
 							#response = '{ "status": "ok", "timestamp": "' + session.timestamp + '", "result": "' + session.result + '" }'
+							puts "[*] Type 3 Response: #{session.result}"
 							break
 						end
 					else
