@@ -17,14 +17,17 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-
 require 'webrick'
 include WEBrick
 require 'net/http'
 require 'digest/md5'
 require 'uri'
 require 'yaml'
+require 'base64'
 
+require 'rubygems'
+require 'json'
+require 'sq_ntlmfuncs'
 require 'sq_db'
 require 'sq_controller'
 require 'sq_victim'
@@ -83,8 +86,8 @@ def loadconfig
 		$config['output-file'] = "ntlmhashes.txt"
 	end
 
-	if $config["dbfile"] == nil then
-		$config['dbfile'] = "squirtle.db"
+	if $config["db"] == nil then
+		$config['db'] = "sqlite://squirtle.db"
 	end
 	
 	if $config['user'] == nil then
@@ -93,18 +96,9 @@ def loadconfig
 	
 	# if no password, generate a random password
 	if $config['pass'] == nil then
-		$config['pass'] = Rex::Text.rand_text_alphanumeric(8)
+		chars = ("a".."z").to_a + ("A".."Z").to_a + ("0".."9").to_a
+		$config['pass'] = Array.new(8, '').collect{chars[rand(chars.size)]}.join
 	end
-	
-	# load msf libs
-	if $config["msflib"] == nil then
-		curfile = File.symlink?(__FILE__) ? File.readlink(__FILE__) : __FILE__
-		$config['msflib'] = unshift(File.join(File.dirname(curfile), 'lib'))
-	end
-	
-	$:.unshift($config['msflib'])
-	require 'rex'
-	require 'msf/core'
 	
 	# timeout for clients
 	if $config["timeout"] == nil then
@@ -119,7 +113,6 @@ def loadconfig
 	$config["index"] = tmparray.to_s
 	
 	# load main squirtle.js file and replace timeout value
-	# then obfuscate if desired and add to $config["index"]
 	if $config["jsfile"] == nil then
 		$config["jsfile"] = "squirtle.js"
 	end
@@ -128,30 +121,19 @@ def loadconfig
 
 	$config["js"] = $config["js"].gsub("TIMEOUTVALUE", $config["timeout"].to_s)
 
-#	if $config["obfuscatejs"] == true then
-#		include Exploit::Remote::HttpServer::HTML
-#		print "[*] Obfuscating Javascript . . ."
-#		options = {
-#			'Variables' => [ 'mTimer', 'TimerLength', 'getFuncy', 'response', 'getDown'  ],
-#			'Methods' => [ 'init', 'keepalive', 'getStatus', 'getAuthURL' ]
-#		}
-#		$config["js"] = obfuscate_js($config["js"], options)
-#	end
-
 	$config["index"] = $config["index"].gsub("INSERTSCRIPTHERE", $config["js"])
 	
 	puts "Configuration loaded . . ."
 	puts "-" * 70
 	puts "  Listen Addr: #{$config['address']}:#{$config['port']}"
 	puts "  Output File: #{$config['output-file']}"
-	puts "Database File: #{$config['dbfile']}"
+	puts "Database Info: #{$config['db']}"
 	puts "  Server Type: #{$config['serverstring']}"
 	puts "       Domain: #{$config['domain']}"
 	puts "       Server: #{$config['server']}"
 	puts "     DNS Name: #{$config['dns_name']}"
 	puts "   DNS Domain: #{$config['dns_domain']}"
 	puts "Capture Nonce: #{$config['nonce'].unpack('h*')}"
-	puts "      MSF Dir: #{$config['msflib']}"
 	puts "-" * 70
 
 end
@@ -171,14 +153,16 @@ def getsessionkey(req)
 	end
 end
 	
+# --------------------------------------------------------------------------
 # Squirtle, Squirtle, Squirtle!
-puts "Squirtle v1.0 (c) 2008 by Kurt Grutzmacher - grutz@jingojango.net\n\n"
+puts "Squirtle v1.1 (c) 2008 by Kurt Grutzmacher - grutz@jingojango.net\n\n"
 
 $config = {}
 
 loadconfig
 db = DB.new()
-db.connect($config['dbfile'])
+db.setup($config['db'])
+db.connect($config['dbopts'])
 
 # start 'er up
 # gotta seed

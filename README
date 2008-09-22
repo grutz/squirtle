@@ -1,24 +1,21 @@
-   +--------------------------------------------------+
-   | SQUIRTLE - The Browser-based NTLM Attack Toolkit |
-   |   version 1.0 - DefCon release (August, 2008)    |
-   +--------------------------------------------------+
+SQUIRTLE - The NTLM Single Sign-On Controller
+version 1.1 - ToorCon release (September, 2008)
 
 The purpose of this little doodad is to help you prove to your employer, your
 client, your best friend, your dog, or God that NTLM is truly dead. It does
 this by taking control of any browser that comes into contact with it and
 making it perform NTLM authentication at will. By using a set of API calls
-you can imbed Squirtle into existing penetration toolkits, proxies or other
+you can embed Squirtle into existing penetration toolkits, proxies or other
 fun tools at your disposal.
 
 Requirements
 ------------
 
-  o  Metasploit 3 Framework
   o  Ruby language interpreter (1.8.6 tested)
-  o  Rubygems:
-     o  SQLite3
-     o  ActiveRecord
-  o  Be INSIDE a corporate network
+  o  ActiveRecord RubyGem (sudo gem install activerecord)
+  o  Ruby GEMs for SQL server of choice (sqlite3, mysql, postgres)
+  o  JSON RubyGem (sudo gem install json) - http://json.rubyforge.org/
+  o  INSIDE a corporate network
 
 Why Inside?
 -----------
@@ -38,7 +35,7 @@ Using Squirtle
 
 Running Squirtle is easy:
 
- Step 1: Modify squirtle.yaml to suit your configuration
+ Step 1: Modify squirtle.yaml to fit your configuration
  Step 2: "ruby squirtle.rb"
  Step 3: Point browsers towards http://yourserver:8080/
 
@@ -49,11 +46,38 @@ What to do after that depends upon you.
  Option 3: Combine Squirtle with your own proxy code using the Squirtle API
  Option 4: Make cookies!
 
+Redirecting Console Output
+--------------------------
+
+Webrick spits a lot of crap out in STDERR. Until we complete the console
+commands you can redirect STDERR to a log file or /dev/null.
+
+  $ ./squirtle 2>/dev/null
+
+This will help for devices that have slow screens (mobile devices mostly)
+
+Success Stories
+---------------
+
+Well this is a proof of concept/borderline munition tool so I don't think many
+stories will come out of it being used "successfully". However I can say that
+the tool works in my lab and in limited enterprise testing on the following:
+
+ Squirtle Boxes:
+	Apple Macintosh OS X 10.5.4 - ruby 1.8.6 (2007-03-13 patchlevel 0) [i686-darwin8.10.1]
+	Gentoo Linux - ruby 1.8.6 (2008-03-03 patchlevel 114) [i686-linux]
+	
+ Victims:
+	Windows XP SP2, IE 6.0.2900.2180.xpsp2_rtm.040803-2158
+	Windows XP SP2, IE 6.0.2900.2180.xp_sp2_qfe.070227-2300CO
+	
+ Evil Agents:
+	NTLMAPS modified for Squirtle - http://code.google.com/p/squirtle/source/browse/ntlmaps-squirtle
 
 WARNING! ACHTUNG!
 -----------------
 
-Like most security tools, it can be used for good or evil. If you try to use
+Like most security tools, this can be used for good or evil. If you try to use
 it within your enterprise without approval from your management, you may have
 created a "resume generating" event for yourself. Get the approval you need
 before treading further.

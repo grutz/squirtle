@@ -1,13 +1,8 @@
 #!/usr/bin/env ruby
 
 # decodentlm-typemsg.rb - Decode NTLM Type Messages
-
-# set msfbase where your metasploit library is
-msfbase = File.symlink?(__FILE__) ? File.readlink(__FILE__) : __FILE__
-$:.unshift(File.join(File.dirname(msfbase), 'lib'))
-
-require 'rex'
-require 'msf/core'
+require 'base64'
+require 'sq_ntlmfuncs'
 
 # NTLMSSP Message Flags
 NEGOTIATE_UNICODE     = 0x00000001  # Only set if Type 1 contains it - this or oem, not both
@@ -55,7 +50,7 @@ def showflags(reqflags)
 end
 
 def decode(message)
-	decode = Rex::Text.decode_base64(message.strip)
+	decode = Base64.decode64(message.strip)
 	type = decode[8]
 	puts ".----------------."
 	puts "| Type #{type} Message |----------------------------------------------------------]"
@@ -90,11 +85,17 @@ def decode(message)
 	end
 	
 	if (type == 3)
-		(domain, user, host, lm, nt) = Rex::Proto::SMB::Utils.process_type3_message(message)	
+		(domain, user, host, lm, nt) = NTLMFUNCS.process_type3_message(message)	
 		puts "#{user}/#{host}:#{domain}:#{lm}:#{nt}"
 	end
 end
 
 msg = ARGV[0] || "TlRMTVNTUAABAAAABzIAAAYABgArAAAACwALACAAAABXT1JLU1RBVElPTkRPTUFJTg=="
+#msg = "TlRMTVNTUAACAAAADAAMADAAAAAFgomgd8ot4MNgsDoAAAAAAAAAAIYAhgA8AAAAVwBJAE4ARABPAE0AAgAMAFcASQBOAEQATwBNAAEAHgBCAEEALQBJADAARwBCADYAQgBGAE0AWgAzAE0AVgAEABQAdwBpAG4AZABvAG0ALgBjAG8AbQADADQAYgBhAC0AaQAwAGcAYgA2AGIAZgBtAHoAMwBtAHYALgB3AGkAbgBkAG8AbQAuAGMAbwBtAAAAAAA="
+#msg = "TlRMTVNTUAABAAAABzIAAAYABgArAAAACwALACAAAABXT1JLU1RBVElPTkRPTUFJTg=="
+#msg = "TlRMTVNTUAACAAAADAAMADAAAAABAoEAASNFZ4mrze8AAAAAAAAAAGIAYgA8AAAARABPAE0AQQBJAE4AAgAMAEQATwBNAEEASQBOAAEADABTAEUAUgBWAEUAUgAEABQAZABvAG0AYQBpAG4ALgBjAG8AbQADACIAcwBlAHIAdgBlAHIALgBkAG8AbQBhAGkAbgAuAGMAbwBtAAAAAAA="
+#msg = "TlRMTVNTUAACAAAADAAMADAAAAAFAoEAu+LqAGRSF+UAAAAAAAAAAIYAhgA8AAAAVwBJAE4ARABPAE0AAgAMAFcASQBOAEQATwBNAAEAHgBCAEEALQBJADAARwBCADYAQgBGAE0AWgAzAE0AVgAEABQAdwBpAG4AZABvAG0ALgBjAG8AbQADADQAYgBhAC0AaQAwAGcAYgA2AGIAZgBtAHoAMwBtAHYALgB3AGkAbgBkAG8AbQAuAGMAbwBtAAAAAAA="
+#msg = "TlRMTVNTUAACAAAANjUxMjYyMAAAAAXCgaDmnZs/4M8UfKiVPgoAAAAAhgCGADwAAABXAEkATgBEAE8ATQACAAwAVwBJAE4ARABPAE0AAQAeAEIAQQAtAEkAMABHAEIANgBCAEYATQBaADMATQBWAAQAFAB3AGkAbgBkAG8AbQAuAGMAbwBtAAMANABiAGEALQBpADAAZwBiADYAYgBmAG0AegAzAG0AdgAuAHcAaQBuAGQAbwBtAC4AYwBvAG0AAAAAAA=="
+
 decode(msg)
 

