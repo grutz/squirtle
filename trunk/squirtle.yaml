@@ -12,9 +12,6 @@ dns_domain: domain.com
 # Web server string
 serverstring: Microsoft-IIS/6.0
 
-# Metasploit lib directory
-msflib: ../metasploit/trunk/lib/
-
 # Port to listen on
 port: 8080
 
@@ -30,10 +27,13 @@ nonce: 1122334455667788
 # File to write NT/LM hashes to
 output-file: ntlmhashes.txt
 
-# Sqlite database filename
-dbfile: squirtle.db
+# Database configuration string examples
+db: sqlite://squirtle.db
+#db: mysql://user:pass@hostname/squirtle
+#db: postgress://user:pass@hostname/squirtle
 
 # Controller authentication -- change this if you feel like it.
+# Comment pass: out to have a randomly generated password created
 user: squirtle
 pass: eltriuqs
   

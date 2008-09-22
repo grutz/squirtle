@@ -1,0 +1,10 @@
+Version 1.0 - 08/05/08
+
+- Initial DefCon release!
+
+Version 1.1 - 09/21/08
+
+- ToorCon X release!
+- No longer requiring Metasploit libraries.
+- Added support for MySQL and Postgres databases. Need to create the database
+  and tables first.

@@ -1,5 +1,3 @@
-# Squirtle's Database class
-#
 # Copyright (C) 2008  Kurt Grutzmacher
 #
 # This program is free software: you can redistribute it and/or modify
@@ -15,86 +13,79 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-require 'rubygems'
+# Squirtle's Database Objects
+
 require 'active_record'
-require 'sqlite3'
 
 class DB
 	
-	# make a connection to the database
-	def connect(dbname)
-		if not File.exists?(dbname)
-			create(dbname)
-		end
-		
-		options = { 'adapter' => 'sqlite3', 'dbfile' => dbname }
-		
-		begin
-			ActiveRecord::Base.establish_connection(options)
-		rescue ::Exception => e
-			puts "[!] Error establishing database connection: #{e.to_s}"
-			return False
+	# parsing the db strong from the configuration file
+	def setup(opts = '')
+				
+		case opts
+		when /^sqlite:/ then do_sqlite(opts)
+		when /^mysql:/ then do_mysql(opts)
+		when /^postgres:/ then do_postgres(opts)
 		end
 	end
 	
-	# remove a connection to the database
-	def disconnect
-		begin
-			ActiveRecord::Base.remove_connection
-		rescue ::Exception => e
-			puts "[!] Error removing database connection: #{e.to_s}"
+	# ah, sqlite you say? sure!
+	def do_sqlite(opts)
+		conn = {}
+		conn[:adapter] = 'sqlite3'
+		conn[:database] = opts.sub!("sqlite://", '')
+
+		require 'sq_sqlite'
+		$config['dbopts'] = conn
+	end
+	
+	# mysql, my favorite!
+	def do_mysql(opt)
+		opt = opt.sub!("mysql://", '')
+
+		conn = {}
+		conn[:adapter] = 'mysql'
+		
+		auth, dest = opt.split('@')
+		(dest = auth and auth = nil) if not dest
+		conn[:username], conn[:password] = auth.split(':') if auth
+		target, conn[:database] = dest.split('/')
+		(conn[:database] = target and target = nil) if not conn[:database]
+		conn[:host],port = target.split(':') if target
+		if not port then
+			conn[:port] = 3306
+		else
+			conn[:port] = port.to_i
 		end
+		
+		require 'sq_mysql'
+		$config['dbopts'] = conn
 	end
+	
+	# postgress!  (untested)
+	def do_postgres(opt)
+			opt = opt.sub!("postgres://", '')
 
-	def create(dbname)
-		puts "[*] Creating database: #{dbname}"
-		db = SQLite3::Database.new(dbname)
+			conn = {}
+			conn[:adapter] = 'postgres'
 
-		puts "[*] Creating users table . . ."
-		db.execute %q{
-				CREATE TABLE users (
-					id integer primary key,
-					key varchar(32),
-					timestamp varchar(30),
-					ip varchar(16),
-					browser varchar(255),
-					user varchar(255),
-					workstation varchar(255),
-					domain varchar(255),
-					nonce varchar(16),
-					lm varchar(48),
-					nt varchar(48)
-				)
-		}		
+			auth, dest = opt.split('@')
+			(dest = auth and auth = nil) if not dest
+			conn[:username], conn[:password] = auth.split(':') if auth
+			target, conn[:database] = dest.split('/')
+			(conn[:database] = target and target = nil) if not conn[:database]
+			conn[:host],port = target.split(':') if target
+			if not port then
+				conn[:port] = 3306
+			else
+				conn[:port] = port.to_i
+			end
 
-		# "func" can be one of:
-		#   'static' => request client auth with static "nonce"
-		#   'type2'  => request client auth to "type2" message
-		#   'redir'  => force client to redirect to "url" and give up control
-
-		puts "[*] Creating sessions table . . ."
-		db.execute %q{
-				CREATE TABLE sessions (
-					id integer primary key,
-					key_id varchar(32),
-					timestamp varchar(30),
-					function varchar(6),
-					url varchar(255),
-					nonce varchar(255),
-					type2_base64 varchar(255),
-					domain varchar(255),
-					server varchar(255),
-					dns_name varchar(255),
-					dns_domain varchar(255),
-					result varchar(255)
-				)
-		}
-		db.close
-	end
+			require 'sq_postgres'
+			$config['dbopts'] = conn
+		end
 	
 end
-
-# Squirtle's Database Objects
 
 class User < ActiveRecord::Base
 	has_many :keys
