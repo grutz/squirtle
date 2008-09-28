@@ -50,7 +50,7 @@ class DB
 		db.execute %q{
 				CREATE TABLE users (
 					id integer primary key,
-					key varchar(32),
+					sesskey varchar(32),
 					timestamp varchar(30),
 					ip varchar(16),
 					browser varchar(255),
@@ -72,7 +72,7 @@ class DB
 		db.execute %q{
 				CREATE TABLE sessions (
 					id integer primary key,
-					key_id varchar(32),
+					sesskey_id varchar(32),
 					timestamp varchar(30),
 					function varchar(6),
 					url varchar(255),
