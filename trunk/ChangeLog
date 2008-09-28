@@ -8,3 +8,8 @@ Version 1.1 - 09/21/08
 - No longer requiring Metasploit libraries.
 - Added support for MySQL and Postgres databases. Need to create the database
   and tables first.
+
+Version 1.1a - 09/28/08
+
+- Fix minor issue with SQLite field names
+- Added example evil agent code

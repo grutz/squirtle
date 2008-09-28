@@ -129,6 +129,7 @@ class AuthorizationServlet < HTTPServlet::AbstractServlet
 				host = host.gsub(/\x00/, '')		# remove nulls (not unicode happy here)
 				user = user.gsub(/\x00/, '')		# remove nulls (not unicode happy here either)
 				domain = domain.gsub(/\x00/, '')		# ditto!
+				puts "[!] Type 3 Message: #{ntlmauth}"
 				puts "[!] #{key}: #{host}/#{user}:#{domain}:#{lm}:#{nt}"
 				
 				if sess.function == "type2" or sess.function == "static" then
