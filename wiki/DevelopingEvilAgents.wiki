@@ -20,6 +20,37 @@ In order to support NTLM authentication, protocols such as IMAP, SMTP, POP3, NNT
 For example this is all handled within the following python function:
 
 {{{
+def process_type2(msg2, sqkey='', squri="http://localhost:8080/", squser="squirtle", sqpass="eltriuqs"):
+  msg2 = urllib.quote(msg2)
+  auth_handler = urllib2.HTTPBasicAuthHandler()
+  auth_handler.add_password(realm='Squirtle Realm',
+                            uri=squri,
+                            user=squser,
+                            passwd=sqpass)
+  urlopener = urllib2.build_opener(auth_handler)
+  urllib2.install_opener(urlopener)
+
+  dutchieurl = "%scontroller/type2?key=%s&type2=%s" % (squri, sqkey, msg2)
+  try:
+    res = urllib2.urlopen(dutchieurl)
+  except urllib2.URLError, e:
+    print '*** Error talking to Squirtle.' + str(e.code) + ': ' + e.reason + '\n'
+    return ''
+
+  response = res.read()
+  try:
+    response = simplejson.loads(response)
+  except Exception, e:
+    print '*** Error receiving response from Squirtle: ' + response + '\n'
+    return ''
+
+  if response['status'] == 'ok':
+    NTLM_msg3 = response['result']
+  else:
+    print '*** Response from Squirtle: ' + response['status'] + '\n'
+
+  return NTLM_msg3
+
 def login_squirtle(server, sqkey):
   """Login as a user using the Squirtle API"""
 
