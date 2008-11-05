@@ -93,4 +93,4 @@ When modifying an SMB protocol application to integrate with Squirtle a number o
 
 In the case of Metasploit, Signing/Sealing isn't supported (yet). Samba however does so its integration steps would be a bit more but in essence as long as the messages are correctly formed everything should pass nicely.
 
-View the msf3.2-testing diff for details on the integration. It's certainly much more involved but should give you a good insight as to the challenges.
+View the [http://code.google.com/p/squirtle/source/browse/trunk/evilagents/msf32-squirtle.diff msf3.2-testing diff] for details on the integration. It's certainly much more involved but should give you a good insight as to the challenges.
