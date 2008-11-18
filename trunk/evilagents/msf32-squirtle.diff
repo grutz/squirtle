@@ -1,6 +1,6 @@
 Index: lib/msf/core/exploit/smb.rb
 ===================================================================
---- lib/msf/core/exploit/smb.rb	(revision 5845)
+--- lib/msf/core/exploit/smb.rb	(revision 5943)
 +++ lib/msf/core/exploit/smb.rb	(working copy)
 @@ -49,7 +49,11 @@
  			OptString.new('SMBUser', [ false, 'The username to authenticate as', '']),
@@ -39,7 +39,7 @@ Index: lib/msf/core/exploit/smb.rb
  		simple.connect("\\\\#{datastore['RHOST']}\\IPC$")
 Index: lib/rex/proto/smb/client.rb
 ===================================================================
---- lib/rex/proto/smb/client.rb	(revision 5845)
+--- lib/rex/proto/smb/client.rb	(revision 5943)
 +++ lib/rex/proto/smb/client.rb	(working copy)
 @@ -10,6 +10,7 @@
  require 'rex/proto/smb/evasions'
@@ -214,7 +214,7 @@ Index: lib/rex/proto/smb/client.rb
  	
 Index: lib/rex/proto/smb/utils.rb
 ===================================================================
---- lib/rex/proto/smb/utils.rb	(revision 5845)
+--- lib/rex/proto/smb/utils.rb	(revision 5943)
 +++ lib/rex/proto/smb/utils.rb	(working copy)
 @@ -489,9 +489,9 @@
  			# Return the flags back to the decode so we can base64 it again
@@ -315,32 +315,31 @@ Index: lib/rex/proto/smb/utils.rb
  end
 Index: lib/rex/proto/smb/exceptions.rb
 ===================================================================
---- lib/rex/proto/smb/exceptions.rb	(revision 5845)
+--- lib/rex/proto/smb/exceptions.rb	(revision 5943)
 +++ lib/rex/proto/smb/exceptions.rb	(working copy)
 @@ -839,7 +839,19 @@
  	end
  end
  
 +class SquirtleNoResult < Error
-+  def to_s
-+    "Squirtle did not return a valid session."
-+  end
++	def to_s
++		"Squirtle did not return a valid session."
++	end
  end
 +
 +class SquirtleResult < SimpleClientError
-+  def to_s
-+    "Squirtle Result: " + self.source
-+  end
++	def to_s
++		"Squirtle Result: " + self.source
++	end
  end
 +
  end
-+end
-+end
  end
-\ No newline at end of file
++end
++end
 Index: lib/rex/proto/smb/simpleclient.rb
 ===================================================================
---- lib/rex/proto/smb/simpleclient.rb	(revision 5845)
+--- lib/rex/proto/smb/simpleclient.rb	(revision 5943)
 +++ lib/rex/proto/smb/simpleclient.rb	(working copy)
 @@ -179,8 +179,8 @@
  		self.shares = { }
